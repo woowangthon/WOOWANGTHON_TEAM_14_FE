@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
-/* 디자인 가이드: docs/design-guideline-2.html (회색 종이 파일철) */
+/* 디자인 가이드: docs/design-guideline-2.html (흰 바탕 + 색색 유리 폴더) */
 @theme {
   --font-sans: "Pretendard Variable", Pretendard, "Helvetica Neue", Helvetica, Arial, "Apple SD Gothic Neo",
     "Malgun Gothic", sans-serif;
-  --color-paper: #b8b8b8; /* 앞 폴더, 종이 면 (검정 글자 대비 10.6:1) */
-  --color-paper-back: #707070; /* 뒤 폴더, 안 고른 탭 (흰 글자 5.0:1) */
+  --color-paper: #ffffff; /* 바탕. 표의 고정 열이 이 색으로 덮는다 */
+  --color-paper-back: #f1f1f4; /* 연회색 알약·보조 면 */
   --color-sticker: #a9cdf0; /* 스티커와 '지금 단계' 전용 (글자 #10243d, 9.4:1) */
   --color-sticker-ink: #10243d;
 }
@@ -21,7 +21,7 @@ html {
 
 body {
   background: #fff;
-  color: #000;
+  color: #1c1c22;
   font-family: var(--font-sans);
   letter-spacing: -0.01em;
   word-break: keep-all;
@@ -35,12 +35,11 @@ body {
 
 .paper {
   background-color: var(--color-paper);
-  background-image: var(--grain);
 }
 
 /* 모호함 칸: 빗금. 글자는 흰 바탕 위에 올린다 */
 .hatch {
-  background: repeating-linear-gradient(135deg, #fff 0 5px, #000 5px 6px);
+  background: repeating-linear-gradient(135deg, #fff 0 5px, #b4b4c0 5px 6px);
 }
 
 .sticker {
@@ -73,7 +72,31 @@ body {
   border-left: 0.12em dashed rgba(16, 36, 61, 0.5);
 }
 
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.progress-bar {
+  animation: slide 1.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .progress-bar {
+    animation: none;
+  }
+
   * {
     transition: none !important;
   }

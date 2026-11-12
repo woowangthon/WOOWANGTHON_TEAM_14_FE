@@ -1,4 +1,5 @@
-import type { Annotation, AskResponse, Item, Question } from "../types";
+import type { SetupValues } from "../lib/setup";
+import type { Annotation, AskResponse, ElementKey, Item, Question } from "../types";
 
 /** 질문 카드: 계약의 Question에 화면이 보여줄 항목 이름을 붙인 것. 백엔드가 주지 않으면 화면이 항목 목록으로 채운다. */
 export type QuestionCard = Question & { item_title: string };
@@ -15,4 +16,12 @@ export interface Api {
   draftAnnotation(question: Question, answers: string[]): Promise<Annotation>;
   /** 후임 질문. 확정된 기록만 근거로 답하고, 없으면 none. 실제 서버는 질문만 받고 확정 기록은 서버가 갖고 있다(목은 넘겨받는다). */
   ask(question: string, annotations: Annotation[]): Promise<AskResponse>;
+  /** (실제 서버만) 시작 화면의 조직 정보로 서버에 새 작업(세션)을 연다. */
+  startSession?(values: SetupValues): Promise<void>;
+  /** (실제 서버만) 전임·후임이 칸을 '해당 없음'으로 닫았다고 서버에 알린다. 질문을 만들기 전에 해야 반영된다. */
+  closeElement?(itemId: string, key: ElementKey, closedBy: "전임" | "후임"): Promise<void>;
+  /** (실제 서버만) 전임이 초안을 맞음·수정·삭제로 정한 결과를 서버에 저장한다. */
+  saveDecision?(annotation: Annotation): Promise<void>;
+  /** (실제 서버만) 기록이 없을 때 후임의 질문을 전임에게 보낸다. */
+  forward?(question: string): Promise<void>;
 }

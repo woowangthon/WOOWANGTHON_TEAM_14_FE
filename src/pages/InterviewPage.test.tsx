@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createMockApi } from "../api/mockApi";
 import mockJson from "../mock/mock.json";
 import type { MockData } from "../types";
@@ -198,5 +198,24 @@ describe("InterviewPage (화면 2): 질문 → 답변 → 초안 확인", () => 
     expect(await screen.findByRole("heading", { name: "질문을 모두 마쳤어요" })).toBeInTheDocument();
     expect(screen.getByText(`확정 1 · 삭제 1 · 건너뜀 ${total - 2}`)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "문서 보기" })).toHaveAttribute("href", "/handbook");
+  });
+
+  it("결정하면 서버에 저장하고, 저장하지 못하면 오류를 보여주며 다음으로 넘어가지 않는다", async () => {
+    const user = userEvent.setup();
+    const saveDecision = vi.fn().mockRejectedValueOnce(new Error("서버에 연결하지 못했어요")).mockResolvedValue(undefined);
+    render(
+      <MemoryRouter>
+        <InterviewPage api={{ ...instantApi, saveDecision }} />
+      </MemoryRouter>,
+    );
+    await answerAll(user);
+
+    await user.click(await screen.findByRole("button", { name: "맞음" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("서버에 연결하지 못했어요");
+    expect(screen.getByText(`질문 1 / ${total}`)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "맞음" }));
+    expect(await screen.findByText(`질문 2 / ${total}`)).toBeInTheDocument();
+    expect(saveDecision).toHaveBeenLastCalledWith(expect.objectContaining({ status: "approved" }));
   });
 });

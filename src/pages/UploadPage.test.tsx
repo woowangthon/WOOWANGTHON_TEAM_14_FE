@@ -43,10 +43,10 @@ describe("UploadPage (화면 1): 자료 → 항목 확인 → 카톡 → 분석 
     expect(screen.getByText(/있는 대로 다 넣어 주세요/)).toBeInTheDocument();
   });
 
-  it("목 데이터로 보는 화면이라는 안내를 항상 보여준다", () => {
+  it("개발용 안내(목 데이터)는 화면에 보이지 않는다", () => {
     render(<UploadPage api={instantApi} />);
 
-    expect(screen.getByText(/목 데이터/)).toBeInTheDocument();
+    expect(screen.queryByText(/목 데이터/)).not.toBeInTheDocument();
   });
 
   it("자료를 올리고 항목 뽑기를 누르면 항목 확인 단계로 넘어간다", async () => {

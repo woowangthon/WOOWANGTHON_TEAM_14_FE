@@ -60,7 +60,7 @@ export interface AskHit {
   text: string;
   source: { type: SourceType; ids: string[] };
   label: Label;
-  approved_at: string;
+  approved_at?: string; // 실제 서버는 주지 않는다
 }
 
 export interface AskResponse {

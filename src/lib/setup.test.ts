@@ -37,10 +37,11 @@ describe("validateSetup: 시작 화면 입력 규칙", () => {
     expect(result.errors.department).toBe("업무 부서(담당 역할)를 입력해 주세요");
   });
 
-  it("조직 종류를 고르지 않으면 오류다", () => {
+  it("조직 종류를 고르지 않아도 오류가 아니고 '기타'로 채워진다", () => {
     const result = validateSetup({ ...valid, orgType: "" });
 
-    expect(result.errors.orgType).toBe("조직 종류를 골라 주세요");
+    expect(result.errors).toEqual({});
+    expect(result.clean?.orgType).toBe("기타");
   });
 
   it("앞뒤 공백은 지우고, 전임·후임 이름은 비워 두어도 된다", () => {

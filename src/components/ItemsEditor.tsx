@@ -8,7 +8,7 @@ interface Props {
 }
 
 const lineInput =
-  "w-full rounded-none border-0 border-b border-black bg-transparent py-2 text-base placeholder:text-neutral-700";
+  "w-full rounded-2xl border border-transparent bg-[#f3f3f6] px-4 py-2.5 text-base placeholder:text-[#9a9aa4] focus:border-[#1c1c22] focus:bg-white focus:outline-none";
 
 /** 확정 자료에서 뽑은 업무 항목을 전임이 확인하는 화면: 합치기·빼기·추가. 항목이 틀리면 뒤가 다 틀리므로 여기서 사람이 바로잡는다. */
 export default function ItemsEditor({ items, onChange }: Props) {
@@ -49,51 +49,42 @@ export default function ItemsEditor({ items, onChange }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold">{`항목 ${items.length}개`}</p>
+        <p className="text-sm font-medium text-[#55555f]">{`항목 ${items.length}개`}</p>
         <div className="flex flex-col items-end gap-1">
-          <button
-            type="button"
-            onClick={merge}
-            disabled={selectedIds.length < 2}
-            className="rounded-[2px] border border-black bg-white px-4 py-2 text-sm transition-colors hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-black"
-          >
+          <button type="button" onClick={merge} disabled={selectedIds.length < 2} className="w-fit rounded-full bg-[#f1f1f4] px-5 py-2.5 text-sm text-[#2b2b33] transition-colors hover:bg-[#e4e4ea] disabled:cursor-not-allowed disabled:opacity-40">
             선택한 항목 합치기
           </button>
-          <span className="text-xs text-neutral-900">두 개 이상 고르면 먼저 고른 항목에 합쳐져요</span>
         </div>
       </div>
 
-      <ul className="grid gap-5 sm:grid-cols-2">
-        {items.map((item, index) => {
+      <ul className="grid gap-4 sm:grid-cols-2">
+        {items.map((item) => {
           const picked = selectedIds.includes(item.id);
           return (
             <li
               key={item.id}
               aria-label={item.title}
-              className={`flex flex-col gap-3 bg-[#f4f3ef] p-4 shadow-[0_2px_5px_rgba(0,0,0,0.28)] transition-transform ${
-                index % 2 === 0 ? "-rotate-[0.6deg]" : "rotate-[0.5deg]"
-              } ${picked ? "outline outline-[3px] outline-black" : ""}`}
+              className={`flex flex-col gap-3 rounded-3xl p-5 transition-colors ${
+                picked ? "bg-white ring-2 ring-[#1c1c22]" : "bg-[#f6f6f8]"
+              }`}
             >
-              <div className="flex items-start justify-between gap-3 border-b-2 border-black pb-2">
+              <div className="flex items-start justify-between gap-3">
                 <label className="flex cursor-pointer items-center gap-2.5">
                   <input
                     type="checkbox"
                     aria-label={`${item.title} 선택`}
                     checked={picked}
                     onChange={() => toggle(item.id)}
-                    className="h-4 w-4 accent-black"
+                    className="h-5 w-5 accent-[#1c1c22]"
                   />
-                  <span aria-hidden="true" className="text-xs font-light tabular-nums">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
                 </label>
-                {picked && <span className="bg-black px-1.5 py-0.5 text-[11px] font-bold text-white">선택됨</span>}
+                {picked && <span className="rounded-full bg-[#1c1c22] px-2.5 py-0.5 text-[11px] font-medium text-white">선택됨</span>}
               </div>
-              <h3 className="text-2xl font-bold leading-tight tracking-[-0.03em]">{item.title}</h3>
+              <h3 className="text-xl font-semibold leading-tight tracking-[-0.03em]">{item.title}</h3>
               <ul className="flex flex-1 flex-wrap content-start gap-1.5">
                 {item.keywords.map((keyword) => (
                   <li key={keyword}>
-                    <span className="border border-black px-1.5 py-0.5 text-xs">{keyword}</span>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs text-[#55555f]">{keyword}</span>
                   </li>
                 ))}
               </ul>
@@ -101,7 +92,7 @@ export default function ItemsEditor({ items, onChange }: Props) {
                 type="button"
                 aria-label={`${item.title} 빼기`}
                 onClick={() => remove(item.id)}
-                className="w-fit self-end text-sm underline underline-offset-4"
+                className="w-fit self-end text-sm text-[#8b8b94] underline underline-offset-4 hover:text-[#1c1c22]"
               >
                 빼기
               </button>
@@ -110,9 +101,9 @@ export default function ItemsEditor({ items, onChange }: Props) {
         })}
       </ul>
 
-      <form onSubmit={add} className="grid gap-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-        <div className="flex flex-col gap-0.5">
-          <label htmlFor="new-item-name" className="text-xs text-neutral-900">
+      <form onSubmit={add} className="grid gap-4 rounded-3xl bg-[#f6f6f8] p-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="new-item-name" className="px-1 text-[13px] text-[#6b6b75]">
             새 항목 이름
           </label>
           <input
@@ -126,8 +117,8 @@ export default function ItemsEditor({ items, onChange }: Props) {
             }}
           />
         </div>
-        <div className="flex flex-col gap-0.5">
-          <label htmlFor="new-item-keywords" className="text-xs text-neutral-900">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="new-item-keywords" className="px-1 text-[13px] text-[#6b6b75]">
             키워드 (쉼표로 구분)
           </label>
           <input
@@ -141,7 +132,7 @@ export default function ItemsEditor({ items, onChange }: Props) {
         <button
           type="submit"
           disabled={name.trim() === ""}
-          className="rounded-[2px] border border-black bg-black px-5 py-2.5 text-sm text-white transition-colors hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-black disabled:hover:text-white"
+          className="w-fit rounded-full bg-[#1c1c22] px-7 py-3 text-sm font-medium text-white transition-colors hover:bg-[#3a2fd8] disabled:cursor-not-allowed disabled:bg-[#d9d9e0] disabled:text-[#8b8b94] disabled:hover:bg-[#d9d9e0]"
         >
           항목 추가
         </button>

@@ -38,6 +38,11 @@ export function createMockApi({ delayMs = 700 }: { delayMs?: number } = {}): Api
         .map((q) => ({ ...q, item_title: mock.items.find((i) => i.id === q.item_id)?.title ?? q.item_id }));
     },
 
+    async forward(question) {
+      await wait(delayMs);
+      if (question.trim() === "") throw new Error("질문을 적어 주세요");
+    },
+
     // 후임 질문 흉내: 질문에 항목 키워드가 들어 있으면 그 항목의 확정된 기록만 돌려준다. 그 밖에는 지어내지 않고 none.
     async ask(question, annotations) {
       await wait(delayMs);

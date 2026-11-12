@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createMockApi } from "../api/mockApi";
 import type { Note } from "../lib/handbook";
 import HandbookPage from "./HandbookPage";
@@ -64,7 +64,8 @@ describe("HandbookPage (화면 3): 확정된 인수인계서와 후임 질문", 
     const doc = screen.getByRole("region", { name: "인수인계서" });
     expect(within(doc).getByText("연락 경로")).toBeInTheDocument();
     expect(within(doc).getByText(/전임 경험/)).toBeInTheDocument();
-    expect(within(doc).getByText(/answer#1, answer#2/)).toBeInTheDocument();
+    expect(within(doc).getByText(/출처: 전임 답변/)).toBeInTheDocument();
+    expect(within(doc).queryByText(/answer#/)).not.toBeInTheDocument();
   });
 
   it("확정한 기록이 없으면 안내와 질문 화면 링크를 보여준다", () => {
@@ -83,7 +84,8 @@ describe("HandbookPage (화면 3): 확정된 인수인계서와 후임 질문", 
     const answer = await screen.findByRole("region", { name: "답변" });
     expect(within(answer).getByText("단톡에 공지하고 개별로 연락한다")).toBeInTheDocument();
     expect(within(answer).getByText(/전임 경험/)).toBeInTheDocument();
-    expect(within(answer).getByText(/answer#1, answer#2/)).toBeInTheDocument();
+    expect(within(answer).getByText(/출처: 전임 답변/)).toBeInTheDocument();
+    expect(within(answer).queryByText(/answer#/)).not.toBeInTheDocument();
     expect(within(answer).getByText("전임이 확정한 답변")).toBeInTheDocument();
   });
 
@@ -102,5 +104,45 @@ describe("HandbookPage (화면 3): 확정된 인수인계서와 후임 질문", 
     setup();
 
     expect(screen.getByRole("button", { name: "물어보기" })).toBeDisabled();
+  });
+
+  it("기록이 없을 때 '전임에게 질문 보내기'를 누르면 질문을 보내고 보냈다고 알려준다", async () => {
+    const user = userEvent.setup();
+    const forward = vi.fn().mockResolvedValue(undefined);
+    render(
+      <MemoryRouter>
+        <HandbookPage api={{ ...instantApi, forward }} notes={notes} />
+      </MemoryRouter>,
+    );
+
+    await user.type(screen.getByLabelText("후임 질문"), "우주선 발사 일정은?");
+    await user.click(screen.getByRole("button", { name: "물어보기" }));
+    await user.click(await screen.findByRole("button", { name: "전임에게 질문 보내기" }));
+
+    expect(forward).toHaveBeenCalledWith("우주선 발사 일정은?");
+    expect(await screen.findByText("전임에게 보냈어요")).toBeInTheDocument();
+  });
+
+  it("확정 날짜를 모르는 답변에는 날짜 문구를 붙이지 않는다", async () => {
+    const user = userEvent.setup();
+    const api = {
+      ...instantApi,
+      ask: async () => ({
+        hits: [{ annotation_id: "an_1", text: "단톡에 공지한다", source: { type: "전임답변" as const, ids: ["q_01"] }, label: "전임경험" as const }],
+        none: false,
+      }),
+    };
+    render(
+      <MemoryRouter>
+        <HandbookPage api={api} notes={notes} />
+      </MemoryRouter>,
+    );
+
+    await user.type(screen.getByLabelText("후임 질문"), "회비는?");
+    await user.click(screen.getByRole("button", { name: "물어보기" }));
+
+    const answer = await screen.findByRole("region", { name: "답변" });
+    expect(within(answer).queryByText(/확정 undefined|확정 $/)).not.toBeInTheDocument();
+    expect(within(answer).getByText(/출처: 전임 답변/)).toBeInTheDocument();
   });
 });

@@ -14,11 +14,11 @@ import { ELEMENT_KEYS, type ElementKey, type Item } from "../types";
 
 // 검은 칸 = 채워진 정보, 하얀 점선 칸 = 빠진 정보(종이에 뚫린 구멍). 모양만으로 구분하지 않도록 칸 안에 글자도 함께 넣는다.
 const VARIANT_STYLE: Record<CellVariant, string> = {
-  ok: "bg-black text-white",
-  weak: "bg-[#4f4f4f] text-white",
-  missing: "border-[1.5px] border-dashed border-black bg-white text-black",
+  ok: "bg-[#1c1c22] text-white",
+  weak: "bg-[#6b6b75] text-white",
+  missing: "border-[1.5px] border-dashed border-[#b4b4c0] bg-white text-black",
   vague: "hatch text-black",
-  closed: "border border-neutral-900 bg-transparent text-neutral-900 line-through",
+  closed: "border border-[#cfcfd8] bg-transparent text-[#8b8b94] line-through",
 };
 
 const VARIANT_TEXT: Record<CellVariant, string> = {
@@ -48,7 +48,7 @@ export default function ChecklistTable({ items, mode, onClose }: Props) {
 
   return (
     <div className="flex flex-col gap-5">
-      <section aria-label="요약" className="flex flex-col gap-1 border-y border-black py-3">
+      <section aria-label="요약" className="flex flex-col gap-1 rounded-3xl bg-[#f6f6f8] px-5 py-4">
         <p className="text-lg tracking-[-0.02em]">
           먼저 물어볼 업무: <b className="font-bold">{summary.first?.title ?? "없음"}</b>
           {summary.first && ` (빈 곳 ${summary.first.score}/6)`}
@@ -59,7 +59,7 @@ export default function ChecklistTable({ items, mode, onClose }: Props) {
       <ul className="flex flex-wrap gap-x-4 gap-y-2 text-xs" aria-label="색 설명">
         {(Object.keys(VARIANT_TEXT) as CellVariant[]).map((variant) => (
           <li key={variant} className="flex items-center gap-1.5">
-            <span aria-hidden="true" className={`flex h-5 w-8 items-center justify-center text-[10px] ${VARIANT_STYLE[variant]}`}>
+            <span aria-hidden="true" className={`flex h-5 w-8 items-center justify-center rounded-md text-[10px] ${VARIANT_STYLE[variant]}`}>
               {GLYPH[variant]}
             </span>
             {VARIANT_TEXT[variant]}
@@ -72,7 +72,7 @@ export default function ChecklistTable({ items, mode, onClose }: Props) {
         <table className="w-full min-w-[560px] border-separate border-spacing-1 text-sm">
           <caption className="sr-only">항목 × 6요소 체크표</caption>
           <thead>
-            <tr className="text-left text-xs text-neutral-900">
+            <tr className="text-left text-xs text-[#55555f]">
               <th scope="col" className="paper sticky left-0 z-10 py-1 pr-3 font-normal">
                 항목
               </th>
@@ -102,8 +102,8 @@ export default function ChecklistTable({ items, mode, onClose }: Props) {
                         title={stateLabel(element)}
                         aria-pressed={isSelected}
                         onClick={() => setSelected({ itemId: item.id, key })}
-                        className={`flex min-h-10 w-full items-center justify-center px-1 py-1 text-center text-xs ${VARIANT_STYLE[variant]} ${
-                          isSelected ? "ring-2 ring-black ring-offset-2 ring-offset-paper" : ""
+                        className={`flex min-h-10 w-full items-center justify-center rounded-lg px-1 py-1 text-center text-xs ${VARIANT_STYLE[variant]} ${
+                          isSelected ? "ring-2 ring-[#1c1c22] ring-offset-2 ring-offset-paper" : ""
                         }`}
                       >
                         <span aria-hidden="true">{GLYPH[variant]}</span>
@@ -117,21 +117,21 @@ export default function ChecklistTable({ items, mode, onClose }: Props) {
         </table>
       </div>
 
-      <section aria-label="선택한 칸 상세" className="border-t border-black pt-4 text-sm">
+      <section aria-label="선택한 칸 상세" className="rounded-3xl bg-[#f6f6f8] p-5 text-sm">
         {selectedItem && selected && selectedElement ? (
           <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold tracking-[-0.02em]">
+            <h3 className="text-lg font-semibold tracking-[-0.02em]">
               {selectedItem.title} · {elementLabel(selected.key)}
-            </h2>
+            </h3>
             <p>{stateLabel(selectedElement)}</p>
-            <p className="text-neutral-900">
+            <p className="text-[#55555f]">
               {evidenceText(selectedItem, selectedElement) || "근거로 삼을 문장이 자료에 없어요."}
             </p>
             {canCloseElement(mode, selectedElement) && (
               <button
                 type="button"
                 onClick={() => onClose?.(selectedItem.id, selected.key)}
-                className="w-fit rounded-[2px] border border-black bg-white px-4 py-2 transition-colors hover:bg-black hover:text-white"
+                className="w-fit rounded-full bg-[#f1f1f4] px-5 py-2.5 text-sm text-[#2b2b33] transition-colors hover:bg-[#e4e4ea] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 해당 없음으로 닫기
               </button>

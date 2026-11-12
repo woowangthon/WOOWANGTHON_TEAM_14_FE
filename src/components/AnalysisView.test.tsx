@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { createMockApi } from "../api/mockApi";
 import mockJson from "../mock/mock.json";
 import type { MockData } from "../types";
 import AnalysisView from "./AnalysisView";
@@ -37,5 +38,51 @@ describe("AnalysisView (분석 결과: 항목 카드 + 체크표)", () => {
     await user.click(screen.getByRole("button", { name: "회비 정산 · 연락 경로: 문서에 없음" }));
 
     expect(screen.queryByRole("button", { name: "해당 없음으로 닫기" })).not.toBeInTheDocument();
+  });
+
+  it("칸을 닫으면 서버에도 알린다", async () => {
+    const user = userEvent.setup();
+    const closeElement = vi.fn().mockResolvedValue(undefined);
+    render(<AnalysisView initialItems={mock.items} api={{ ...createMockApi({ delayMs: 0 }), closeElement }} />);
+
+    await user.click(screen.getByRole("button", { name: "회비 정산 · 연락 경로: 문서에 없음" }));
+    await user.click(screen.getByRole("button", { name: "해당 없음으로 닫기" }));
+
+    expect(closeElement).toHaveBeenCalledWith("item_01", "연락경로", "전임");
+  });
+
+  it("서버가 닫기를 받지 못하면 오류를 보여주고 칸은 닫지 않는다", async () => {
+    const user = userEvent.setup();
+    const closeElement = vi.fn().mockRejectedValue(new Error("서버에 연결하지 못했어요"));
+    render(<AnalysisView initialItems={mock.items} api={{ ...createMockApi({ delayMs: 0 }), closeElement }} />);
+
+    await user.click(screen.getByRole("button", { name: "회비 정산 · 연락 경로: 문서에 없음" }));
+    await user.click(screen.getByRole("button", { name: "해당 없음으로 닫기" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("서버에 연결하지 못했어요");
+    expect(screen.getByRole("button", { name: "회비 정산 · 연락 경로: 문서에 없음" })).toBeInTheDocument();
+  });
+
+  it("사실이 많으면 상위 3개만 보여주고 '더 보기'로 펼친다", async () => {
+    const user = userEvent.setup();
+    const base = mock.items[0];
+    const facts = Array.from({ length: 6 }, (_, i) => ({ ...base.facts[0], id: `fact_x${i}`, text: `사실 문장 ${i + 1}` }));
+    render(<AnalysisView initialItems={[{ ...base, facts }]} />);
+
+    const card = screen.getByRole("article", { name: base.title });
+    expect(within(card).getByText("사실 문장 3")).toBeInTheDocument();
+    expect(within(card).queryByText("사실 문장 4")).not.toBeInTheDocument();
+
+    await user.click(within(card).getByRole("button", { name: /더 보기/ }));
+    expect(within(card).getByText("사실 문장 6")).toBeInTheDocument();
+
+    await user.click(within(card).getByRole("button", { name: "접기" }));
+    expect(within(card).queryByText("사실 문장 4")).not.toBeInTheDocument();
+  });
+
+  it("사실이 3개 이하면 '더 보기'가 없다", () => {
+    render(<AnalysisView initialItems={mock.items} />);
+
+    expect(screen.queryByRole("button", { name: /더 보기/ })).not.toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import App from "./App";
 import type { Note } from "./lib/handbook";
 import { NotesProvider } from "./lib/NotesContext";
@@ -65,14 +65,43 @@ describe("시작 화면과 화면 이동", () => {
     expect(screen.queryByRole("navigation", { name: "화면 이동" })).not.toBeInTheDocument();
   });
 
-  it("아무것도 입력하지 않고 시작하면 필수 항목 오류가 보이고 화면이 넘어가지 않는다", async () => {
+  it("입력칸에는 조직 종류 선택과 전임·후임 이름이 없다", async () => {
     const user = userEvent.setup();
     renderApp("/start", null);
 
     await user.click(screen.getByRole("button", { name: "시작하기" }));
 
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/전임자 이름/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/후임자 이름/)).not.toBeInTheDocument();
+  });
+
+  it("처음 열면 입력칸 없이 폴더만 보인다", () => {
+    renderApp("/start", null);
+
+    expect(screen.queryByLabelText(/조직 이름/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "시작하기" })).toBeInTheDocument();
+  });
+
+  it("시작하기 폴더를 처음 누르면 입력칸이 나타나고 아직 오류는 없다", async () => {
+    const user = userEvent.setup();
+    renderApp("/start", null);
+
+    await user.click(screen.getByRole("button", { name: "시작하기" }));
+
+    expect(screen.getByLabelText(/조직 이름/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/업무 부서/)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("아무것도 입력하지 않고 시작하면 필수 항목 오류가 보이고 화면이 넘어가지 않는다", async () => {
+    const user = userEvent.setup();
+    renderApp("/start", null);
+
+    await user.click(screen.getByRole("button", { name: "시작하기" }));
+    await user.click(screen.getByRole("button", { name: "시작하기" }));
+
     expect(screen.getByText("조직 이름을 입력해 주세요")).toBeInTheDocument();
-    expect(screen.getByText("조직 종류를 골라 주세요")).toBeInTheDocument();
     expect(screen.getByText("업무 부서(담당 역할)를 입력해 주세요")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "시작하기" })).toBeInTheDocument();
   });
@@ -81,8 +110,8 @@ describe("시작 화면과 화면 이동", () => {
     const user = userEvent.setup();
     renderApp("/start", null);
 
+    await user.click(screen.getByRole("button", { name: "시작하기" }));
     await user.type(screen.getByLabelText(/조직 이름/), "총학생회");
-    await user.click(screen.getByRole("radio", { name: "학생회" }));
     await user.type(screen.getByLabelText(/업무 부서/), "회계부");
     await user.click(screen.getByRole("button", { name: "시작하기" }));
 
@@ -143,5 +172,28 @@ describe("파일철 틀", () => {
     renderApp("/upload", existing);
 
     expect(screen.getByLabelText("현재 조직")).toHaveTextContent("학생회 · 회계부");
+  });
+});
+
+describe("시작 화면과 서버", () => {
+  it("입력을 마치고 시작하면 서버에 새 작업을 연다", async () => {
+    const user = userEvent.setup();
+    const startSession = vi.fn().mockResolvedValue(undefined);
+    render(
+      <MemoryRouter initialEntries={["/start"]}>
+        <SessionProvider initial={null}>
+          <NotesProvider initial={[]}>
+            <App api={{ startSession } as never} />
+          </NotesProvider>
+        </SessionProvider>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "시작하기" }));
+    await user.type(screen.getByLabelText(/조직 이름/), "테니스 동아리");
+    await user.type(screen.getByLabelText(/업무 부서/), "총무");
+    await user.click(screen.getByRole("button", { name: "시작하기" }));
+
+    expect(startSession).toHaveBeenCalledWith(expect.objectContaining({ orgName: "테니스 동아리", department: "총무" }));
   });
 });
