@@ -48,6 +48,28 @@ describe("createHttpApi: 세션", () => {
     ]);
   });
 
+  it("시작할 때 세션 만들기가 실패해도, 다음 요청에서 다시 만들어 이어간다", async () => {
+    let failOnce = true;
+    const calls: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      const path = String(url).replace("http://be", "");
+      calls.push(path);
+      if (path === "/sessions" && failOnce) {
+        failOnce = false;
+        throw new TypeError("network");
+      }
+      const body = path === "/sessions" ? { session_id: "s1" } : { items: [item("item_01", "회비")] };
+      return new Response(JSON.stringify(body), { status: 200 });
+    }) as unknown as typeof fetch;
+    const api = createHttpApi({ base: "http://be", fetchImpl });
+
+    await expect(api.startSession!(values)).rejects.toThrow(/연결/);
+    const items = await api.uploadDocs([txt("a.txt", "내용")]);
+
+    expect(items).toHaveLength(1);
+    expect(calls.filter((p) => p === "/sessions")).toHaveLength(2);
+  });
+
   it("서버가 세션을 모른다고 하면(404) 다시 시작하라고 알려준다", async () => {
     const { fetchImpl } = fake((c) => (c.path === "/sessions" ? { session_id: "s1" } : { __status: 404 }));
     const api = createHttpApi({ base: "http://be", fetchImpl });

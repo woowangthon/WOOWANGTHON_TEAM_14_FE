@@ -51,7 +51,7 @@ export default function StartPage({ api = defaultApi }: { api?: Api }) {
     const result = validateSetup(values);
     setErrors(result.errors);
     if (result.clean) {
-      void api.startSession?.(result.clean); // 서버가 있으면 새 작업을 연다. 첫 업로드가 이 일을 기다린다.
+      api.startSession?.(result.clean)?.catch(() => {}); // 서버가 있으면 새 작업을 연다. 실패하면 첫 업로드가 다시 만든다.
       start(result.clean);
       navigate("/upload");
     }

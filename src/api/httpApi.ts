@@ -83,6 +83,7 @@ export function createHttpApi({
       return [];
     }
   })();
+  let setup: SetupValues | null = null; // 시작 화면에서 받은 값. 세션 만들기가 실패했을 때 같은 값으로 다시 만든다.
   const extras = new Map<string, string[]>(); // 한 답변이 여러 주석으로 나뉘었을 때, 첫 주석 id → 나머지 id
 
   const remember = (items: Item[]) => {
@@ -138,17 +139,26 @@ export function createHttpApi({
       store.set(SESSION_KEY, sessionId);
       return sessionId;
     });
+    // 실패한 시도를 붙들고 있으면 다음 요청도 같은 실패를 받는다. 비워서 다시 만들 수 있게 한다.
+    pending.catch(() => {
+      pending = null;
+    });
     return pending;
   }
 
   async function sid(): Promise<string> {
     if (sessionId) return sessionId;
     if (pending) return pending;
-    return createSession("조직", "", "");
+    return createSession(
+      setup?.orgName ?? "조직",
+      setup?.giver ?? "",
+      setup?.receiver ?? "",
+    );
   }
 
   return {
     async startSession(values: SetupValues) {
+      setup = values;
       sessionId = null;
       extras.clear();
       remember([]);
