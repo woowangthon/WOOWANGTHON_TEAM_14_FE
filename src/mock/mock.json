@@ -1,0 +1,197 @@
+{
+  "_note": "가상 데이터(테니스 동아리, 가명). API 계약 타입을 따른다. 프론트는 이 파일로 화면을 먼저 만들고, 백엔드는 테스트 fixture로 쓴다.",
+  "items": [
+    {
+      "id": "item_01",
+      "title": "회비 정산",
+      "keywords": ["회비", "미납", "정산", "입금"],
+      "facts": [
+        {"id": "fact_01", "text": "4월 회비 미납 5명", "date": "2026-04-02",
+         "source": {"type": "자료", "ids": ["chat#3"]}, "status": "확인됨"},
+        {"id": "fact_02", "text": "회비는 매월 말 정산한다",
+         "source": {"type": "자료", "ids": ["doc#회칙3조"]}, "status": "확인됨"},
+        {"id": "fact_03", "text": "3개월 이상 미납 시 단톡 공지 후 개별 연락",
+         "source": {"type": "전임답변", "ids": ["answer#7"]}, "status": "확인됨", "label": "전임경험"}
+      ],
+      "elements": {
+        "시기": {"state": "있음", "fill": "추가확인권장", "evidence": "fact_02"},
+        "연락경로": {"state": "문서에없음"},
+        "판단기준": {"state": "있음", "fill": "확인됨", "evidence": "fact_03"},
+        "자주틀리는점": {"state": "모호함", "evidence": "미납 반복"},
+        "미리할일": {"state": "문서에없음"},
+        "배경": {"state": "해당없음", "closed_by": "전임"}
+      },
+      "score": 4
+    },
+    {
+      "id": "item_02",
+      "title": "코트 대관",
+      "keywords": ["코트", "대관", "예약", "체육시설과"],
+      "facts": [
+        {"id": "fact_04", "text": "6/14(토) 오후 코트 확정", "date": "2026-04-20",
+         "source": {"type": "자료", "ids": ["chat#4"]}, "status": "확인됨"},
+        {"id": "fact_05", "text": "코트 대관은 학교 체육시설과에 신청한다",
+         "source": {"type": "자료", "ids": ["doc#운영규정"]}, "status": "확인됨"},
+        {"id": "fact_06", "text": "체육시설과 담당자에게 메일 후 익일 전화. 메일만 보내면 누락 사례(작년)",
+         "source": {"type": "전임답변", "ids": ["answer#3"]}, "status": "확인됨", "label": "전임경험"}
+      ],
+      "elements": {
+        "시기": {"state": "있음", "fill": "추가확인권장", "evidence": "fact_04"},
+        "연락경로": {"state": "있음", "fill": "확인됨", "evidence": "fact_06"},
+        "판단기준": {"state": "문서에없음"},
+        "자주틀리는점": {"state": "있음", "fill": "확인됨", "evidence": "fact_06"},
+        "미리할일": {"state": "문서에없음"},
+        "배경": {"state": "해당없음", "closed_by": "전임"}
+      },
+      "score": 3
+    },
+    {
+      "id": "item_03",
+      "title": "대회 참가",
+      "keywords": ["대회", "신청", "참가", "선수"],
+      "facts": [
+        {"id": "fact_07", "text": "교내 테니스 대회 참가 신청은 5/15까지",
+         "source": {"type": "자료", "ids": ["doc#공지2026-05"]}, "status": "확인됨"},
+        {"id": "fact_08", "text": "대회 신청서 제출", "date": "2026-05-12", "date_estimated": true,
+         "source": {"type": "자료", "ids": ["chat#9"]}, "status": "추정"}
+      ],
+      "elements": {
+        "시기": {"state": "있음", "fill": "확인됨", "evidence": "fact_07"},
+        "연락경로": {"state": "문서에없음"},
+        "판단기준": {"state": "모호함", "evidence": "선수 구성은 알아서"},
+        "자주틀리는점": {"state": "문서에없음"},
+        "미리할일": {"state": "문서에없음"},
+        "배경": {"state": "해당없음", "closed_by": "전임"}
+      },
+      "score": 4
+    },
+    {
+      "id": "item_04",
+      "title": "신입 모집",
+      "keywords": ["신입", "모집", "면접", "홍보"],
+      "facts": [
+        {"id": "fact_09", "text": "신입 모집 공지는 개강 첫 주에 게시한다",
+         "source": {"type": "자료", "ids": ["doc#회칙5조"]}, "status": "확인됨"},
+        {"id": "fact_10", "text": "3/12 신입 면접 5명 진행", "date": "2026-03-12",
+         "source": {"type": "자료", "ids": ["chat#21"]}, "status": "확인대기"}
+      ],
+      "elements": {
+        "시기": {"state": "있음", "fill": "추가확인권장", "evidence": "fact_09"},
+        "연락경로": {"state": "문서에없음"},
+        "판단기준": {"state": "모호함", "evidence": "분위기 보고 뽑음"},
+        "자주틀리는점": {"state": "문서에없음"},
+        "미리할일": {"state": "문서에없음"},
+        "배경": {"state": "문서에없음"}
+      },
+      "score": 6
+    },
+    {
+      "id": "item_05",
+      "title": "행사(MT)",
+      "keywords": ["MT", "행사", "보험", "장소"],
+      "facts": [
+        {"id": "fact_11", "text": "MT 장소 섭외 후 단체 보험 가입", "date": "2026-05-30",
+         "source": {"type": "자료", "ids": ["chat#33"]}, "status": "확인됨"},
+        {"id": "fact_12", "text": "펜션 예약은 총무가 직접 연락", "date": "2026-05-02",
+         "source": {"type": "자료", "ids": ["chat#31"]}, "status": "확인됨"}
+      ],
+      "elements": {
+        "시기": {"state": "문서에없음"},
+        "연락경로": {"state": "있음", "fill": "추가확인권장", "evidence": "fact_12"},
+        "판단기준": {"state": "문서에없음"},
+        "자주틀리는점": {"state": "모호함", "evidence": "인원 변동 주의"},
+        "미리할일": {"state": "있음", "fill": "확인됨", "evidence": "fact_11"},
+        "배경": {"state": "해당없음", "closed_by": "전임"}
+      },
+      "score": 4
+    }
+  ],
+  "questions": [
+    {
+      "id": "q_01", "item_id": "item_01", "element": "연락경로", "kind": "빈칸", "rank": 1,
+      "step1": "회비를 안 낸 분께는 실제로 누구에게, 어떤 방식으로 연락하세요?",
+      "step2": "그 과정에서 평소와 다르게 처리해야 했던 경우가 있었나요?",
+      "step3": "최근 사례를 하나 들어주실 수 있나요? 특별한 상황이 없었다면 일반적인 사례도 괜찮습니다."
+    },
+    {
+      "id": "q_02", "item_id": "item_02", "element": "판단기준", "kind": "빈칸", "rank": 2,
+      "step1": "코트 시간대를 정할 때 어떤 기준으로 고르세요?",
+      "step2": "같은 일인데 다르게 정했던 경우가 있었나요? 무엇을 보고 나눴나요?",
+      "step3": "최근에 시간대를 정했던 사례를 하나 들어주실 수 있나요?"
+    },
+    {
+      "id": "q_03", "item_id": "item_03", "element": "시기", "kind": "확인", "rank": 3,
+      "step1": "5/12에 대회 신청서를 낸 것으로 보이는데 맞나요? 마감일은 언제였나요?",
+      "step2": "마감 전에 미리 해두면 좋은 일이 있었나요?",
+      "step3": "작년 신청 때의 사례를 하나 들어주실 수 있나요?"
+    },
+    {
+      "id": "q_04", "item_id": "item_01", "element": "시기", "kind": "보완", "rank": 4,
+      "step1": "'매월 말 정산'은 며칠까지를 말하나요?",
+      "step2": "기한이 지나면 어떻게 처리하세요?",
+      "step3": "최근에 정산했던 사례를 하나 들어주실 수 있나요?"
+    },
+    {
+      "id": "q_05", "item_id": "item_04", "element": "연락경로", "kind": "빈칸", "rank": 5,
+      "step1": "신입 모집 공지는 실제로 어디에, 어떤 방식으로 올리세요?",
+      "step2": "그 과정에서 평소와 다르게 처리해야 했던 경우가 있었나요?",
+      "step3": "지난 학기 모집 사례를 하나 들어주실 수 있나요?"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "ann_01", "item_id": "item_01", "element": "판단기준",
+      "text": "3개월 이상 미납 시 단톡 공지 후 개별 연락. 작년에 환불 요구 1건은 회장이 처리.",
+      "slots": {"절차": "단톡 공지 후 개별 연락", "사례": "작년 환불 요구 1건, 회장 처리", "조건": "3개월 이상 미납"},
+      "source": {"type": "전임답변", "ids": ["answer#7"]}, "label": "전임경험", "status": "approved"
+    },
+    {
+      "id": "ann_02", "item_id": "item_02", "element": "연락경로",
+      "text": "체육시설과 담당자에게 메일 먼저 보내고 다음 날 전화. 메일만 보내면 묻혀서 작년에 코트를 놓친 적 있음.",
+      "slots": {"절차": "메일 후 익일 전화", "연락": "체육시설과 담당자", "사례": "작년 코트 누락"},
+      "source": {"type": "전임답변", "ids": ["answer#3"]}, "label": "전임경험", "status": "approved"
+    },
+    {
+      "id": "ann_03", "item_id": "item_02", "element": "자주틀리는점",
+      "text": "메일만 보내고 확인 전화를 하지 않는 것.",
+      "slots": {"절차": "메일 후 반드시 확인 전화"},
+      "source": {"type": "전임답변", "ids": ["answer#3"]}, "label": "전임경험", "status": "edited"
+    },
+    {
+      "id": "ann_04", "item_id": "item_03", "element": "시기",
+      "text": "신청 마감은 5/15. 마감 3일 전까지 내는 편.",
+      "slots": {"조건": "마감 5/15", "절차": "마감 3일 전까지 제출"},
+      "source": {"type": "전임답변", "ids": ["answer#5"]}, "label": "전임경험", "status": "draft"
+    },
+    {
+      "id": "ann_05", "item_id": "item_05", "element": "미리할일",
+      "text": "MT 장소는 2달 전에 섭외하고 단체 보험은 출발 1주 전에 가입.",
+      "slots": {"절차": "장소 2달 전 섭외, 보험 1주 전 가입"},
+      "source": {"type": "전임답변", "ids": ["answer#9"]}, "label": "전임경험", "status": "draft"
+    },
+    {
+      "id": "ann_06", "item_id": "item_04", "element": "판단기준",
+      "text": "면접은 5분 내외, 출석 가능 여부와 코트 이용 의사를 본다.",
+      "slots": {"절차": "5분 내외 면접", "조건": "출석 가능 여부, 코트 이용 의사"},
+      "source": {"type": "전임답변", "ids": ["answer#11"]}, "label": "전임경험", "status": "rejected"
+    }
+  ],
+  "ask_with_hit": {
+    "hits": [
+      {
+        "annotation_id": "ann_01",
+        "text": "3개월 이상 미납 시 단톡 공지 후 개별 연락. 작년에 환불 요구 1건은 회장이 처리.",
+        "source": {"type": "전임답변", "ids": ["answer#7"]},
+        "label": "전임경험",
+        "approved_at": "2026-11-12"
+      }
+    ],
+    "summary": "3개월 이상 밀리면 단톡에 공지하고 개별 연락합니다. 작년에 환불 요구가 한 번 있었습니다. (참고용 요약)",
+    "none": false
+  },
+  "ask_none": {
+    "hits": [],
+    "summary": null,
+    "none": true
+  }
+}
