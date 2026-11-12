@@ -42,6 +42,7 @@ export interface Question {
   step2: string;
   step3: string;
   rank: number;
+  fallback?: true; // AI가 못 만들어 기본 문장으로 채운 질문
 }
 
 export interface Annotation {
@@ -57,10 +58,31 @@ export interface Annotation {
 
 export interface AskHit {
   annotation_id: string;
+  item?: string; // 어느 업무의 기록인지 (서버가 준다)
   text: string;
   source: { type: SourceType; ids: string[] };
   label: Label;
   approved_at?: string; // 실제 서버는 주지 않는다
+}
+
+/** 발행된 인수인계서의 한 항목: 자료에서 찾은 사실과 전임이 확정한 기록. */
+export interface PublishedItem {
+  id: string;
+  title: string;
+  elements: Partial<Record<ElementKey, Element>>;
+  facts: Fact[];
+  annotations: Annotation[];
+}
+
+export interface PublishedDocument {
+  items: PublishedItem[];
+  notice: string;
+}
+
+/** 후임이 기록이 없어서 전임에게 보낸 질문. */
+export interface ForwardedQuestion {
+  question: string;
+  asked_at: string;
 }
 
 export interface AskResponse {

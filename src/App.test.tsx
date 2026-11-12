@@ -29,7 +29,7 @@ function renderApp(path: string, initial: SetupValues | null, notes: Note[] = []
 }
 
 describe("화면 3 연결", () => {
-  it("전임이 확정한 노트가 문서 화면에 나온다", () => {
+  it("전임이 확정한 노트가 문서 화면에 나온다", async () => {
     renderApp("/handbook", existing, [
       {
         item_title: "회비 정산",
@@ -46,7 +46,7 @@ describe("화면 3 연결", () => {
       },
     ]);
 
-    expect(screen.getByRole("heading", { name: "회비 정산" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "회비 정산" }, { timeout: 3000 })).toBeInTheDocument();
     expect(screen.getByText("단톡에 공지한다")).toBeInTheDocument();
   });
 });

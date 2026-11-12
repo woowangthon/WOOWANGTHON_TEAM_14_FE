@@ -1,10 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { createMockApi } from "../api/mockApi";
 import mockJson from "../mock/mock.json";
-import type { MockData } from "../types";
+import type { Annotation, MockData } from "../types";
 import InterviewPage from "./InterviewPage";
 
 const mock = mockJson as unknown as MockData;
@@ -217,5 +217,168 @@ describe("InterviewPage (화면 2): 질문 → 답변 → 초안 확인", () => 
     await user.click(screen.getByRole("button", { name: "맞음" }));
     expect(await screen.findByText(`질문 2 / ${total}`)).toBeInTheDocument();
     expect(saveDecision).toHaveBeenLastCalledWith(expect.objectContaining({ status: "approved" }));
+  });
+});
+
+const q0 = mock.questions[0];
+const makeDraft = (id: string, element: Annotation["element"], text: string, slots: Annotation["slots"] = {}): Annotation => ({
+  id,
+  item_id: q0.item_id,
+  element,
+  text,
+  slots,
+  source: { type: "전임답변", ids: [q0.id] },
+  label: "전임경험",
+  status: "draft",
+});
+
+const draftRegions = () => screen.getAllByRole("region", { name: "초안 확인" });
+
+describe("InterviewPage: 한 답변이 여러 주석으로 나뉠 때", () => {
+  it("나뉜 주석이 각각 초안으로 보이고, 모두 정한 뒤에야 다음 질문으로 넘어간다", async () => {
+    const user = userEvent.setup();
+    const saveDecision = vi.fn().mockResolvedValue(undefined);
+    const api = {
+      ...instantApi,
+      saveDecision,
+      draftAnnotations: async () => [makeDraft("an_1", "연락경로", "첫째 요약"), makeDraft("an_2", "자주틀리는점", "둘째 요약")],
+    };
+    render(
+      <MemoryRouter>
+        <InterviewPage api={api} />
+      </MemoryRouter>,
+    );
+    await answerAll(user);
+
+    expect(await screen.findAllByRole("region", { name: "초안 확인" })).toHaveLength(2);
+    await user.click(within(draftRegions()[0]).getByRole("button", { name: "맞음" }));
+    expect(screen.getByText(`질문 1 / ${total}`)).toBeInTheDocument(); // 아직 하나가 남았다
+
+    await user.click(within(draftRegions()[1]).getByRole("button", { name: "삭제" }));
+
+    expect(await screen.findByText(`질문 2 / ${total}`)).toBeInTheDocument();
+    expect(saveDecision).toHaveBeenNthCalledWith(1, expect.objectContaining({ id: "an_1", status: "approved" }));
+    expect(saveDecision).toHaveBeenNthCalledWith(2, expect.objectContaining({ id: "an_2", status: "rejected" }));
+  });
+
+  it("초안에는 전임이 적은 슬롯(절차·사례 등)이 이름과 함께 보이고 비어 있는 슬롯은 보이지 않는다", async () => {
+    const user = userEvent.setup();
+    const api = {
+      ...instantApi,
+      draftAnnotations: async () => [makeDraft("an_1", "연락경로", "요약", { 절차: "메일 후 전화", 사례: null as never })],
+    };
+    render(
+      <MemoryRouter>
+        <InterviewPage api={api} />
+      </MemoryRouter>,
+    );
+    await answerAll(user);
+
+    const region = (await screen.findAllByRole("region", { name: "초안 확인" }))[0];
+    expect(within(region).getByText("절차")).toBeInTheDocument();
+    expect(within(region).getByText("메일 후 전화")).toBeInTheDocument();
+    expect(within(region).queryByText("사례")).not.toBeInTheDocument();
+  });
+
+  it("라벨을 '규정 근거'로 바꾸고 확정하면 바뀐 라벨로 저장된다", async () => {
+    const user = userEvent.setup();
+    const saveDecision = vi.fn().mockResolvedValue(undefined);
+    const seen: Annotation[] = [];
+    const api = { ...instantApi, saveDecision, draftAnnotations: async () => [makeDraft("an_1", "연락경로", "요약")] };
+    render(
+      <MemoryRouter>
+        <InterviewPage api={api} onDecide={(a) => seen.push(a)} />
+      </MemoryRouter>,
+    );
+    await answerAll(user);
+    const region = (await screen.findAllByRole("region", { name: "초안 확인" }))[0];
+    expect(within(region).getByRole("button", { name: "전임 경험" })).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(within(region).getByRole("button", { name: "규정 근거" }));
+    await user.click(within(region).getByRole("button", { name: "맞음" }));
+
+    expect(saveDecision).toHaveBeenCalledWith(expect.objectContaining({ status: "approved", label: "규정근거" }));
+    expect(seen[0].label).toBe("규정근거");
+  });
+});
+
+describe("InterviewPage: 추가 질문과 질문 카드 표시", () => {
+  const withExtras = async () => {
+    const base = await instantApi.getQuestions();
+    return [
+      ...base,
+      { ...base[0], id: "q_x1", rank: 6, element: "배경" as const },
+      { ...base[1], id: "q_x2", rank: 7, element: "미리할일" as const },
+    ];
+  };
+
+  it("카드 5장을 마치면 추가 질문이 있다고 알려주고, 이어서 답할 수 있다", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <InterviewPage api={{ ...instantApi, getQuestions: withExtras }} />
+      </MemoryRouter>,
+    );
+    for (let i = 0; i < total; i += 1) {
+      await user.click(await screen.findByRole("button", { name: "이 질문 건너뛰기" }));
+    }
+
+    expect(await screen.findByRole("heading", { name: "질문을 모두 마쳤어요" })).toBeInTheDocument();
+    expect(screen.getByText(`확정 0 · 삭제 0 · 건너뜀 ${total}`)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "추가 질문 2개 더 답하기" }));
+
+    expect(await screen.findByText(`질문 ${total + 1} / ${total + 2}`)).toBeInTheDocument();
+  });
+
+  it("추가 질문이 없으면 그런 버튼이 없다", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <InterviewPage api={instantApi} />
+      </MemoryRouter>,
+    );
+    for (let i = 0; i < total; i += 1) {
+      await user.click(await screen.findByRole("button", { name: "이 질문 건너뛰기" }));
+    }
+
+    expect(await screen.findByRole("heading", { name: "질문을 모두 마쳤어요" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /추가 질문/ })).not.toBeInTheDocument();
+  });
+
+  it("서버가 기본 문장으로 채운 질문에는 '기본 질문' 표시가 붙는다", async () => {
+    const withFallback = async () => {
+      const base = await instantApi.getQuestions();
+      return [{ ...base[0], fallback: true as const }, ...base.slice(1)];
+    };
+    render(
+      <MemoryRouter>
+        <InterviewPage api={{ ...instantApi, getQuestions: withFallback }} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("기본 질문")).toBeInTheDocument();
+  });
+});
+
+describe("InterviewPage: 질문을 불러오지 못할 때", () => {
+  it("오류와 함께 다시 불러오기 버튼과 자료 화면 링크를 보여주고, 다시 누르면 불러온다", async () => {
+    const user = userEvent.setup();
+    const getQuestions = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("업무 항목이 없습니다. 문서와 대화를 먼저 올려주세요."))
+      .mockImplementation(() => instantApi.getQuestions());
+    render(
+      <MemoryRouter>
+        <InterviewPage api={{ ...instantApi, getQuestions }} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("업무 항목이 없습니다");
+    expect(screen.getByRole("link", { name: "자료 화면으로" })).toHaveAttribute("href", "/upload");
+
+    await user.click(screen.getByRole("button", { name: "다시 불러오기" }));
+
+    expect(await screen.findByText(`질문 1 / ${total}`)).toBeInTheDocument();
+    expect(getQuestions).toHaveBeenCalledTimes(2);
   });
 });

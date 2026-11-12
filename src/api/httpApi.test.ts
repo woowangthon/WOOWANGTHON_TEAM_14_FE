@@ -237,62 +237,71 @@ describe("createHttpApi: 질문과 답변", () => {
     await expect(api.getQuestions()).rejects.toThrow("문서와 대화를 먼저 올려주세요");
   });
 
-  it("세 단계 답변 중 적은 것만 이어 붙여 한 번에 보내고, 주석 초안을 돌려준다", async () => {
+  it("카드 5장 뒤의 추가 질문도 이어서 돌려준다", async () => {
+    const { api } = await ready(() => ({ cards: [card], more: [{ ...card, id: "q_06", rank: 6 }] }));
+
+    const all = await api.getQuestions();
+
+    expect(all.map((q) => q.id)).toEqual(["q_01", "q_06"]);
+  });
+
+  it("세 단계 답변 중 적은 것만 이어 붙여 한 번에 보내고, 서버가 만든 주석 초안들을 돌려준다", async () => {
     const annotation = { id: "an_001", item_id: "item_01", element: "연락경로", text: "정리", slots: {}, source: { type: "전임답변", ids: ["q_01"] }, label: "전임경험", status: "draft" };
     const { api, calls } = await ready(() => ({ annotations: [annotation], skipped: [] }));
 
-    const draft = await api.draftAnnotation(card as never, ["총무가 공지한다", "", "지난달에 전화했다"]);
+    const drafts = await api.draftAnnotations(card as never, ["총무가 공지한다", "", "지난달에 전화했다"]);
 
     const sent = calls.find((c) => c.path === "/sessions/s1/answers")!;
     expect(sent.body).toEqual({ answers: [{ question_id: "q_01", text: "총무가 공지한다 지난달에 전화했다" }] });
-    expect(draft.id).toBe("an_001");
-    expect(draft.status).toBe("draft");
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0]).toMatchObject({ id: "an_001", status: "draft" });
+  });
+
+  it("서버가 주석을 여러 개로 나눠 주면 모두 돌려준다", async () => {
+    const make = (id: string, element: string) => ({ id, item_id: "item_01", element, text: `${id} 요약`, slots: {}, source: { type: "전임답변", ids: ["q_01"] }, label: "전임경험", status: "draft" });
+    const { api } = await ready(() => ({ annotations: [make("an_001", "연락경로"), make("an_002", "자주틀리는점")], skipped: [] }));
+
+    const drafts = await api.draftAnnotations(card as never, ["충분히 긴 답변입니다", "", ""]);
+
+    expect(drafts.map((d) => d.id)).toEqual(["an_001", "an_002"]);
   });
 
   it("답변이 너무 짧아서 서버가 건너뛰면 10자 이상 적어 달라고 알려준다", async () => {
     const { api } = await ready(() => ({ annotations: [], skipped: ["q_01"] }));
 
-    await expect(api.draftAnnotation(card as never, ["네", "", ""])).rejects.toThrow(/10자/);
+    await expect(api.draftAnnotations(card as never, ["네", "", ""])).rejects.toThrow(/10자/);
   });
 
-  it("맞음을 누르면 서버의 주석을 승인한다", async () => {
+  it("맞음을 누르면 승인과 라벨을 서버에 보낸다", async () => {
     const draft = { id: "an_001", item_id: "item_01", element: "연락경로", text: "정리", slots: {}, source: { type: "전임답변", ids: ["q_01"] }, label: "전임경험", status: "draft" };
     const { api, calls } = await ready(() => ({ annotations: [draft], skipped: [] }));
-    const made = await api.draftAnnotation(card as never, ["충분히 긴 답변입니다", "", ""]);
+    const [made] = await api.draftAnnotations(card as never, ["충분히 긴 답변입니다", "", ""]);
 
     await api.saveDecision!({ ...made, status: "approved" } as Annotation);
 
-    expect(calls.at(-1)).toEqual({ method: "PATCH", path: "/sessions/s1/annotations/an_001", body: { status: "approved" } });
+    expect(calls.at(-1)).toEqual({ method: "PATCH", path: "/sessions/s1/annotations/an_001", body: { status: "approved", label: "전임경험" } });
   });
 
-  it("고쳐서 저장하면 고친 글을 보내고, 삭제하면 거절로 보낸다", async () => {
+  it("고쳐서 저장하면 고친 글도 보내고, 삭제하면 거절로 보낸다", async () => {
     const draft = { id: "an_001", item_id: "item_01", element: "연락경로", text: "정리", slots: {}, source: { type: "전임답변", ids: ["q_01"] }, label: "전임경험", status: "draft" };
     const { api, calls } = await ready(() => ({ annotations: [draft], skipped: [] }));
-    const made = await api.draftAnnotation(card as never, ["충분히 긴 답변입니다", "", ""]);
+    const [made] = await api.draftAnnotations(card as never, ["충분히 긴 답변입니다", "", ""]);
 
     await api.saveDecision!({ ...made, status: "edited", text: "고친 글" } as Annotation);
-    expect(calls.at(-1)?.body).toEqual({ status: "edited", text: "고친 글" });
+    expect(calls.at(-1)?.body).toEqual({ status: "edited", text: "고친 글", label: "전임경험" });
 
     await api.saveDecision!({ ...made, status: "rejected" } as Annotation);
-    expect(calls.at(-1)?.body).toEqual({ status: "rejected" });
+    expect(calls.at(-1)?.body).toEqual({ status: "rejected", label: "전임경험" });
   });
 
-  it("서버가 주석을 여러 개로 나눠 줘도 한 개의 초안으로 보이고, 결정은 모두에게 적용된다", async () => {
-    const make = (id: string, text: string) => ({ id, item_id: "item_01", element: "연락경로", text, slots: {}, source: { type: "전임답변", ids: ["q_01"] }, label: "전임경험", status: "draft" });
-    const { api, calls } = await ready(() => ({ annotations: [make("an_001", "첫째 요약"), make("an_002", "둘째 요약")], skipped: [] }));
+  it("라벨을 '규정 근거'로 바꿔 저장하면 서버에 그대로 전달한다", async () => {
+    const draft = { id: "an_001", item_id: "item_01", element: "연락경로", text: "정리", slots: {}, source: { type: "전임답변", ids: ["q_01"] }, label: "전임경험", status: "draft" };
+    const { api, calls } = await ready(() => ({ annotations: [draft], skipped: [] }));
+    const [made] = await api.draftAnnotations(card as never, ["충분히 긴 답변입니다", "", ""]);
 
-    const draft = await api.draftAnnotation(card as never, ["충분히 긴 답변입니다", "", ""]);
-    expect(draft.id).toBe("an_001");
-    expect(draft.text).toBe("첫째 요약 둘째 요약");
+    await api.saveDecision!({ ...made, status: "approved", label: "규정근거" } as Annotation);
 
-    await api.saveDecision!({ ...draft, status: "approved" } as Annotation);
-    const patches = calls.filter((c) => c.method === "PATCH").map((c) => c.path);
-    expect(patches).toEqual(["/sessions/s1/annotations/an_001", "/sessions/s1/annotations/an_002"]);
-
-    await api.saveDecision!({ ...draft, status: "edited", text: "내가 고친 글" } as Annotation);
-    const last = calls.slice(-2);
-    expect(last[0].body).toEqual({ status: "edited", text: "내가 고친 글" });
-    expect(last[1].body).toEqual({ status: "rejected" }); // 고친 글이 나머지를 대신한다
+    expect(calls.at(-1)?.body).toEqual({ status: "approved", label: "규정근거" });
   });
 });
 
@@ -333,5 +342,35 @@ describe("createHttpApi: 후임 질문", () => {
     await api.forward!("회비는요?");
 
     expect(calls.at(-1)).toEqual({ method: "POST", path: "/sessions/s1/ask/forward", body: { question: "회비는요?" } });
+  });
+});
+
+describe("createHttpApi: 발행본과 전임 질문함", () => {
+  it("발행하면 서버가 만든 인수인계서(고정 공지문 포함)를 돌려준다", async () => {
+    const document = {
+      items: [{ id: "item_01", title: "회비 정산", elements: {}, facts: [], annotations: [] }],
+      notice: "이 문서는 전임의 경험을 정리한 것이며 회칙·규정이 우선합니다.",
+    };
+    const { calls, fetchImpl } = fake((c) => (c.path === "/sessions" ? { session_id: "s1" } : { document }));
+    const api = createHttpApi({ base: "http://be", fetchImpl });
+    await api.startSession!(values);
+
+    const doc = await api.publish([]);
+
+    expect(calls.at(-1)).toEqual({ method: "POST", path: "/sessions/s1/publish" });
+    expect(doc.notice).toContain("회칙·규정이 우선합니다");
+    expect(doc.items[0].title).toBe("회비 정산");
+  });
+
+  it("전임 질문함(후임이 보낸 질문)을 불러온다", async () => {
+    const questions = [{ question: "회비는요?", asked_at: "2026-11-13T10:00:00" }];
+    const { calls, fetchImpl } = fake((c) => (c.path === "/sessions" ? { session_id: "s1" } : { questions }));
+    const api = createHttpApi({ base: "http://be", fetchImpl });
+    await api.startSession!(values);
+
+    const list = await api.getForwarded();
+
+    expect(calls.at(-1)).toEqual({ method: "GET", path: "/sessions/s1/forwarded" });
+    expect(list).toEqual(questions);
   });
 });

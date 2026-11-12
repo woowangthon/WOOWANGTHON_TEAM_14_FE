@@ -6,7 +6,9 @@ import type {
   AskHit,
   AskResponse,
   ElementKey,
+  ForwardedQuestion,
   Item,
+  PublishedDocument,
   Question,
 } from "../types";
 import type { Api, QuestionCard } from "./types";
@@ -84,7 +86,6 @@ export function createHttpApi({
     }
   })();
   let setup: SetupValues | null = null; // 시작 화면에서 받은 값. 세션 만들기가 실패했을 때 같은 값으로 다시 만든다.
-  const extras = new Map<string, string[]>(); // 한 답변이 여러 주석으로 나뉘었을 때, 첫 주석 id → 나머지 id
 
   const remember = (items: Item[]) => {
     serverItems = items;
@@ -160,7 +161,6 @@ export function createHttpApi({
     async startSession(values: SetupValues) {
       setup = values;
       sessionId = null;
-      extras.clear();
       remember([]);
       store.set(SESSION_KEY, null);
       await createSession(values.orgName, values.giver, values.receiver);
@@ -263,21 +263,23 @@ export function createHttpApi({
 
     async getQuestions(): Promise<QuestionCard[]> {
       const id = await sid();
-      const body = await call<{ cards?: Question[] } & WithError>(
-        "GET",
-        `/sessions/${id}/questions`,
+      const body = await call<
+        { cards?: Question[]; more?: Question[] } & WithError
+      >("GET", `/sessions/${id}/questions`);
+      // 카드(rank 1~5)와 추가 질문(rank 6~)을 한 줄로 이어 돌려준다. 어디까지가 카드인지는 rank로 안다.
+      const all = [...(body.cards ?? []), ...(body.more ?? [])].sort(
+        (x, y) => x.rank - y.rank,
       );
-      const cards = [...(body.cards ?? [])].sort((a, b) => a.rank - b.rank);
-      if (cards.length === 0)
+      if ((body.cards ?? []).length === 0)
         throw new Error(body.error?.message ?? "질문을 만들지 못했어요");
-      return cards.map((q) => ({
+      return all.map((q) => ({
         ...q,
         item_title:
           serverItems.find((i) => i.id === q.item_id)?.title ?? q.item_id,
       }));
     },
 
-    async draftAnnotation(question, answers): Promise<Annotation> {
+    async draftAnnotations(question, answers): Promise<Annotation[]> {
       const texts = answers.map((a) => a.trim()).filter(Boolean);
       if (texts.length === 0)
         throw new Error("답변을 한 가지 이상 적어 주세요");
@@ -293,50 +295,62 @@ export function createHttpApi({
           throw new Error("답변이 너무 짧아요. 10자 이상 적어 주세요");
         throw new Error(body.error?.message ?? "초안을 만들지 못했어요");
       }
-      const [first, ...rest] = made;
-      if (rest.length === 0) return first;
-      extras.set(
-        first.id,
-        rest.map((a) => a.id),
-      );
-      return { ...first, text: made.map((a) => a.text).join(" ") };
+      return made; // 한 답변이 여러 요소로 나뉘면 2~3개. 화면이 하나씩 확정한다.
     },
 
     async saveDecision(annotation) {
       const id = await sid();
-      const rest = extras.get(annotation.id) ?? [];
-      const patch = async (annId: string, payload: Record<string, string>) => {
-        const body = await call<WithError>(
-          "PATCH",
-          `/sessions/${id}/annotations/${annId}`,
-          payload,
-        );
-        if (body.error) throw new Error(body.error.message);
+      const payload: Record<string, string> = {
+        status: annotation.status,
+        label: annotation.label,
       };
-      if (annotation.status === "edited") {
-        await patch(annotation.id, { status: "edited", text: annotation.text });
-        for (const other of rest) await patch(other, { status: "rejected" }); // 고친 글이 나머지를 대신한다
-      } else {
-        await patch(annotation.id, { status: annotation.status });
-        for (const other of rest)
-          await patch(other, { status: annotation.status });
-      }
+      if (annotation.status === "edited") payload.text = annotation.text;
+      const body = await call<WithError>(
+        "PATCH",
+        `/sessions/${id}/annotations/${annotation.id}`,
+        payload,
+      );
+      if (body.error) throw new Error(body.error.message);
+    },
+
+    async publish(): Promise<PublishedDocument> {
+      const id = await sid();
+      const body = await call<{ document?: PublishedDocument } & WithError>(
+        "POST",
+        `/sessions/${id}/publish`,
+      );
+      if (!body.document)
+        throw new Error(body.error?.message ?? "인수인계서를 만들지 못했어요");
+      return {
+        items: body.document.items ?? [],
+        notice: body.document.notice ?? "",
+      };
+    },
+
+    async getForwarded(): Promise<ForwardedQuestion[]> {
+      const id = await sid();
+      const body = await call<{ questions?: ForwardedQuestion[] } & WithError>(
+        "GET",
+        `/sessions/${id}/forwarded`,
+      );
+      return body.questions ?? [];
     },
 
     async ask(question): Promise<AskResponse> {
       const id = await sid();
       await call<WithError>("POST", `/sessions/${id}/publish`); // 후임은 발행된 기록만 볼 수 있다
-      const body = await call<
-        { hits?: (AskHit & { item?: string })[]; none?: boolean } & WithError
-      >("POST", `/sessions/${id}/ask`, {
-        question,
-      });
+      const body = await call<{ hits?: AskHit[]; none?: boolean } & WithError>(
+        "POST",
+        `/sessions/${id}/ask`,
+        { question },
+      );
       const hits = (body.hits ?? []).map(
-        ({ annotation_id, text, source, label }) => ({
+        ({ annotation_id, text, source, label, item }) => ({
           annotation_id,
           text,
           source,
           label,
+          ...(item ? { item } : {}),
         }),
       );
       if (

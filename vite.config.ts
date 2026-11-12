@@ -8,5 +8,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
+    // 테스트는 개인 설정(.env.local의 실제 서버 주소)과 상관없이 항상 목 서버만 쓴다
+    env: { VITE_API_BASE: "" },
   },
 });

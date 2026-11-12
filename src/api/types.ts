@@ -1,5 +1,5 @@
 import type { SetupValues } from "../lib/setup";
-import type { Annotation, AskResponse, ElementKey, Item, Question } from "../types";
+import type { Annotation, AskResponse, ElementKey, ForwardedQuestion, Item, PublishedDocument, Question } from "../types";
 
 /** 질문 카드: 계약의 Question에 화면이 보여줄 항목 이름을 붙인 것. 백엔드가 주지 않으면 화면이 항목 목록으로 채운다. */
 export type QuestionCard = Question & { item_title: string };
@@ -10,10 +10,17 @@ export interface Api {
   uploadDocs(files: File[]): Promise<Item[]>;
   /** API 4: 카톡 대화(TXT, 여러 개 가능) → 항목마다 사실과 6요소 판정이 채워진 결과. 사용자가 고른 항목 목록을 함께 보낸다. */
   uploadChat(files: File[], items: Item[]): Promise<Item[]>;
-  /** 빈 곳이 큰 순서(rank)로 정렬된 질문 목록. */
+  /** 질문 목록(순서대로). 처음 5장이 카드(rank 1~5), 그 뒤(rank 6~)는 추가 질문이다. */
   getQuestions(): Promise<QuestionCard[]>;
-  /** 전임의 단계별 답변(3칸, 비어 있을 수 있음) → 확인 전의 초안(draft). 후임에게는 전임이 확정해야 보인다. */
-  draftAnnotation(question: Question, answers: string[]): Promise<Annotation>;
+  /**
+   * 전임의 단계별 답변(3칸, 비어 있을 수 있음) → 확인 전의 초안(draft)들.
+   * 한 답변에 여러 요소가 섞여 있으면 초안이 2~3개로 나뉘어 온다. 후임에게는 전임이 확정해야 보인다.
+   */
+  draftAnnotations(question: Question, answers: string[]): Promise<Annotation[]>;
+  /** 확정한 기록으로 인수인계서를 만든다(발행). 실제 서버는 자기가 가진 확정 기록을 쓰고, 목은 넘겨받는다. */
+  publish(annotations: Annotation[]): Promise<PublishedDocument>;
+  /** 후임이 전임에게 보낸 질문 목록(전임 질문함). */
+  getForwarded(): Promise<ForwardedQuestion[]>;
   /** 후임 질문. 확정된 기록만 근거로 답하고, 없으면 none. 실제 서버는 질문만 받고 확정 기록은 서버가 갖고 있다(목은 넘겨받는다). */
   ask(question: string, annotations: Annotation[]): Promise<AskResponse>;
   /** (실제 서버만) 시작 화면의 조직 정보로 서버에 새 작업(세션)을 연다. */

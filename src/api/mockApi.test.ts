@@ -40,12 +40,14 @@ describe("mockApi.getQuestions (질문 목록 흉내)", () => {
   });
 });
 
-describe("mockApi.draftAnnotation (답변 → 초안 흉내)", () => {
+describe("mockApi.draftAnnotations (답변 → 초안 흉내)", () => {
   it("답변을 정리한 초안은 draft 상태이고, 출처는 답변 번호이며, 내용이 있는 답변만 들어간다", async () => {
     const [question] = await api.getQuestions();
 
-    const draft = await api.draftAnnotation(question, ["총무가 단톡에 공지한다", "", "작년에 한 건 있었다"]);
+    const drafts = await api.draftAnnotations(question, ["총무가 단톡에 공지한다", "", "작년에 한 건 있었다"]);
 
+    expect(drafts).toHaveLength(1);
+    const [draft] = drafts;
     expect(draft.status).toBe("draft");
     expect(draft.item_id).toBe(question.item_id);
     expect(draft.element).toBe(question.element);
@@ -58,7 +60,49 @@ describe("mockApi.draftAnnotation (답변 → 초안 흉내)", () => {
   it("답변이 하나도 없으면 오류다", async () => {
     const [question] = await api.getQuestions();
 
-    await expect(api.draftAnnotation(question, ["", "  ", ""])).rejects.toThrow("답변을 한 가지 이상 적어 주세요");
+    await expect(api.draftAnnotations(question, ["", "  ", ""])).rejects.toThrow("답변을 한 가지 이상 적어 주세요");
+  });
+});
+
+describe("mockApi.publish (발행 흉내)", () => {
+  const note = (id: string, itemId: string, status: "approved" | "edited" | "rejected" | "draft") => ({
+    id,
+    item_id: itemId,
+    element: "연락경로" as const,
+    text: `${id} 내용`,
+    slots: {},
+    source: { type: "전임답변" as const, ids: ["q_01"] },
+    label: "전임경험" as const,
+    status,
+  });
+
+  it("확정(맞음·수정)된 기록이 있는 항목만 담고, 삭제·확정 전 기록은 뺀다", async () => {
+    const doc = await api.publish([note("a1", "item_01", "approved"), note("a2", "item_02", "rejected"), note("a3", "item_03", "draft")]);
+
+    expect(doc.items.map((i) => i.id)).toEqual(["item_01"]);
+    expect(doc.items[0].annotations.map((a) => a.id)).toEqual(["a1"]);
+    expect(doc.notice).toContain("회칙·규정이 우선합니다");
+  });
+
+  it("확정한 기록이 없으면 공지문 뒤에 '승인된 기록이 없습니다.'를 붙인다", async () => {
+    const doc = await api.publish([]);
+
+    expect(doc.items).toEqual([]);
+    expect(doc.notice).toContain("승인된 기록이 없습니다.");
+  });
+});
+
+describe("mockApi.forward · getForwarded (전임 질문함 흉내)", () => {
+  it("후임이 보낸 질문이 질문함에 쌓인다", async () => {
+    const own = createMockApi({ delayMs: 0 });
+    expect(await own.getForwarded()).toEqual([]);
+
+    await own.forward!("회비는 언제까지 내요?");
+
+    const list = await own.getForwarded();
+    expect(list).toHaveLength(1);
+    expect(list[0].question).toBe("회비는 언제까지 내요?");
+    expect(list[0].asked_at).toMatch(/^\d{4}-\d{2}-\d{2}/);
   });
 });
 
