@@ -115,7 +115,7 @@ describe("시작 화면과 화면 이동", () => {
     await user.type(screen.getByLabelText(/업무 부서/), "회계부");
     await user.click(screen.getByRole("button", { name: "시작하기" }));
 
-    expect(screen.getByRole("heading", { name: "확정 자료 올리기" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "흩어진 자료 모두 올리기" })).toBeInTheDocument();
     expect(screen.getByLabelText("현재 조직")).toHaveTextContent("총학생회 · 회계부");
     expect(screen.getByRole("navigation", { name: "화면 이동" })).toBeInTheDocument();
   });
@@ -123,7 +123,7 @@ describe("시작 화면과 화면 이동", () => {
   it("이미 시작했다면 화면 1이 바로 열리고 조직·부서가 헤더에 보인다", () => {
     renderApp("/upload", existing);
 
-    expect(screen.getByRole("heading", { name: "확정 자료 올리기" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "흩어진 자료 모두 올리기" })).toBeInTheDocument();
     expect(screen.getByLabelText("현재 조직")).toHaveTextContent("학생회 · 회계부");
   });
 

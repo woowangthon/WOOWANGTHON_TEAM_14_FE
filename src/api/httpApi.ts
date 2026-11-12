@@ -1,4 +1,5 @@
 import { emptyElements } from "../lib/items";
+import { readText } from "../lib/materials";
 import type { SetupValues } from "../lib/setup";
 import type {
   Annotation,
@@ -43,13 +44,12 @@ const store = {
   },
 };
 
-const readText = (file: Blob) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("파일을 읽지 못했어요"));
-    reader.readAsText(file);
-  });
+/** 서버는 파일을 한 개만 받는다. 여러 개면 글을 이어 붙여 한 파일로 만든다. */
+async function combine(files: File[], name: string): Promise<File> {
+  if (files.length === 1) return files[0];
+  const texts = await Promise.all(files.map(readText));
+  return new File([texts.join("\n\n")], name, { type: "text/plain" });
+}
 
 const sameList = (a: string[], b: string[]) =>
   a.length === b.length && a.every((x, i) => x === b[i]);
@@ -174,14 +174,7 @@ export function createHttpApi({
           "PDF는 한 번에 한 개만 올릴 수 있어요. 여러 개를 올릴 때는 TXT로 올려 주세요",
         );
       }
-      const file =
-        files.length === 1
-          ? files[0]
-          : new File(
-              [(await Promise.all(files.map(readText))).join("\n\n")],
-              "자료.txt",
-              { type: "text/plain" },
-            );
+      const file = await combine(files, "자료.txt");
 
       const id = await sid();
       const form = new FormData();
@@ -219,8 +212,10 @@ export function createHttpApi({
       if (body.error) throw new Error(body.error.message);
     },
 
-    async uploadChat(file, items) {
+    async uploadChat(files, items) {
       if (items.length === 0) throw new Error("확인된 업무 항목이 없어요");
+      if (files.length === 0) throw new Error("카톡 대화 파일을 올려 주세요");
+      const file = await combine(files, "카톡 대화.txt");
       const id = await sid();
 
       // 사용자가 고친 항목(이름·키워드·빼기·직접 추가)을 서버에 먼저 반영한다. 사실은 카톡을 올릴 때 잡히므로 반드시 그 전에 해야 한다.

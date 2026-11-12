@@ -126,7 +126,7 @@ describe("createHttpApi: 자료와 카톡", () => {
     await api.uploadDocs([txt("a.txt", "내용")]);
 
     const mine = [item("item_01", "회비", ["회비", "미납"])];
-    const result = await api.uploadChat(txt("chat.txt", "대화"), mine);
+    const result = await api.uploadChat([txt("chat.txt", "대화")], mine);
 
     const patchIndex = calls.findIndex((c) => c.method === "PATCH");
     const chatIndex = calls.findIndex((c) => c.path === "/sessions/s1/chat");
@@ -136,6 +136,24 @@ describe("createHttpApi: 자료와 카톡", () => {
       items: [{ id: "item_01", title: "회비", keywords: ["회비", "미납"] }, { id: "item_02", delete: true }],
     });
     expect(result.map((i) => i.id)).toEqual(["item_01", "item_03"]);
+  });
+
+  it("카톡 파일이 여러 개면 한 파일로 합쳐서 올린다", async () => {
+    const { calls, fetchImpl } = fake((c) => {
+      if (c.path === "/sessions") return { session_id: "s1" };
+      if (c.path.endsWith("/docs")) return { items: [item("item_01", "회비")] };
+      return { items: [item("item_01", "회비")], chat_count: 2 };
+    });
+    const api = createHttpApi({ base: "http://be", fetchImpl });
+    await api.startSession!(values);
+    const first = await api.uploadDocs([txt("a.txt", "내용")]);
+
+    await api.uploadChat([txt("1.txt", "첫째 대화"), txt("2.txt", "둘째 대화")], first);
+
+    const upload = calls.find((c) => c.path === "/sessions/s1/chat")!;
+    const text = await readBlob(upload.form!.get("file") as File);
+    expect(text).toContain("첫째 대화");
+    expect(text).toContain("둘째 대화");
   });
 
   it("직접 추가한 항목은 id 없이 이름과 키워드를 보내고, 서버가 준 항목으로 이어간다", async () => {
@@ -151,7 +169,7 @@ describe("createHttpApi: 자료와 카톡", () => {
     await api.uploadDocs([txt("a.txt", "내용")]);
 
     const mine = [serverItems[0], item("item_custom_2", "장비 관리", ["장비", "보관"])];
-    const result = await api.uploadChat(txt("chat.txt", "대화"), mine);
+    const result = await api.uploadChat([txt("chat.txt", "대화")], mine);
 
     const patch = calls.find((c) => c.method === "PATCH")!;
     expect(patch.body).toEqual({ items: [{ title: "장비 관리", keywords: ["장비", "보관"] }] });
@@ -169,7 +187,7 @@ describe("createHttpApi: 자료와 카톡", () => {
     await api.startSession!(values);
     await api.uploadDocs([txt("a.txt", "내용")]);
 
-    await api.uploadChat(txt("chat.txt", "대화"), serverItems);
+    await api.uploadChat([txt("chat.txt", "대화")], serverItems);
 
     expect(calls.some((c) => c.method === "PATCH")).toBe(false);
   });

@@ -24,10 +24,12 @@ export function createMockApi({ delayMs = 700 }: { delayMs?: number } = {}): Api
       return mock.items.map((item) => ({ ...item, facts: [], elements: emptyElements(), score: 6 }));
     },
 
-    async uploadChat(file, items) {
+    async uploadChat(files, items) {
       await wait(delayMs);
       if (items.length === 0) throw new Error("확인된 업무 항목이 없어요");
-      if (!CHAT_FILE.test(file.name)) throw new Error(`지원하지 않는 파일: ${file.name}`);
+      if (files.length === 0) throw new Error("카톡 대화 파일을 올려 주세요");
+      const unsupported = files.find((f) => !CHAT_FILE.test(f.name));
+      if (unsupported) throw new Error(`지원하지 않는 파일: ${unsupported.name}`);
       return items.map((item) => mock.items.find((m) => m.id === item.id) ?? item);
     },
 

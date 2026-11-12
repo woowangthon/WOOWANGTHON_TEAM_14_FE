@@ -114,7 +114,7 @@ describe("mockApi.uploadChat (API 4 흉내)", () => {
   it("카톡 대화를 올리면 항목마다 사실과 6요소 판정이 채워진다", async () => {
     const items = await api.uploadDocs([pdf]);
 
-    const analyzed = await api.uploadChat(chat, items);
+    const analyzed = await api.uploadChat([chat], items);
 
     expect(analyzed.map((i) => i.facts.length)).toEqual(mock.items.map((i) => i.facts.length));
     expect(analyzed.map((i) => i.score)).toEqual(mock.items.map((i) => i.score));
@@ -123,7 +123,7 @@ describe("mockApi.uploadChat (API 4 흉내)", () => {
   it("사용자가 추가한 항목은 분석 결과를 지어내지 않고 비어 있는 채로 둔다", async () => {
     const withCustom = addItem(await api.uploadDocs([pdf]), "장비 관리", "장비");
 
-    const analyzed = await api.uploadChat(chat, withCustom);
+    const analyzed = await api.uploadChat([chat], withCustom);
     const custom = analyzed[analyzed.length - 1];
 
     expect(custom.title).toBe("장비 관리");
@@ -134,7 +134,7 @@ describe("mockApi.uploadChat (API 4 흉내)", () => {
   it("사용자가 뺀 항목은 결과에도 없다", async () => {
     const items = (await api.uploadDocs([pdf])).filter((i) => i.id !== "item_05");
 
-    const analyzed = await api.uploadChat(chat, items);
+    const analyzed = await api.uploadChat([chat], items);
 
     expect(analyzed.map((i) => i.id)).not.toContain("item_05");
   });
@@ -142,10 +142,10 @@ describe("mockApi.uploadChat (API 4 흉내)", () => {
   it("TXT가 아닌 파일은 거부한다", async () => {
     const items = await api.uploadDocs([pdf]);
 
-    await expect(api.uploadChat(new File(["x"], "대화.pdf"), items)).rejects.toThrow("지원하지 않는 파일: 대화.pdf");
+    await expect(api.uploadChat([new File(["x"], "대화.pdf")], items)).rejects.toThrow("지원하지 않는 파일: 대화.pdf");
   });
 
   it("항목이 하나도 없으면 오류다", async () => {
-    await expect(api.uploadChat(chat, [])).rejects.toThrow("확인된 업무 항목이 없어요");
+    await expect(api.uploadChat([chat], [])).rejects.toThrow("확인된 업무 항목이 없어요");
   });
 });

@@ -8,8 +8,8 @@ export type QuestionCard = Question & { item_title: string };
 export interface Api {
   /** API 2: 확정 자료(PDF·TXT) → 업무 항목과 키워드. 사실은 아직 비어 있다. */
   uploadDocs(files: File[]): Promise<Item[]>;
-  /** API 4: 카톡 대화(TXT) → 항목마다 사실과 6요소 판정이 채워진 결과. 사용자가 고친 항목 목록을 함께 보낸다. */
-  uploadChat(file: File, items: Item[]): Promise<Item[]>;
+  /** API 4: 카톡 대화(TXT, 여러 개 가능) → 항목마다 사실과 6요소 판정이 채워진 결과. 사용자가 고른 항목 목록을 함께 보낸다. */
+  uploadChat(files: File[], items: Item[]): Promise<Item[]>;
   /** 빈 곳이 큰 순서(rank)로 정렬된 질문 목록. */
   getQuestions(): Promise<QuestionCard[]>;
   /** 전임의 단계별 답변(3칸, 비어 있을 수 있음) → 확인 전의 초안(draft). 후임에게는 전임이 확정해야 보인다. */
