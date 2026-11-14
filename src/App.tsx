@@ -1,5 +1,12 @@
 import type { ReactElement } from "react";
-import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import {
+  NavLink,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { defaultApi } from "./api";
 import type { Api } from "./api/types";
 import { TONE, type FolderTone } from "./components/Folders";
@@ -44,6 +51,7 @@ export default function App({ api = defaultApi }: { api?: Api }) {
   const { session } = useSession();
   const { notes, record } = useNotes();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 sm:px-8">
@@ -52,37 +60,56 @@ export default function App({ api = defaultApi }: { api?: Api }) {
           <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pt-6 sm:pt-8">
             <Logo large={false} />
             <div className="flex items-center gap-3 text-sm">
-              <p aria-label="현재 조직" className="rounded-full bg-[#f1f1f4] px-4 py-2 text-[#3d3d46]">
+              <p
+                aria-label="현재 조직"
+                className="rounded-full bg-[#f1f1f4] px-4 py-2 text-[#3d3d46]"
+              >
                 {session.orgName} · {session.department}
               </p>
-              <button type="button" onClick={() => navigate("/start")} className="text-[#6b6b75] underline underline-offset-4">
+              <button
+                type="button"
+                onClick={() => navigate("/start")}
+                className="text-[#6b6b75] underline underline-offset-4"
+              >
                 다시 설정
               </button>
             </div>
           </header>
 
-          <nav aria-label="화면 이동" className="mt-8 flex flex-wrap gap-2 sm:mt-10">
-            {tabs.map((tab) => (
-              <NavLink
-                key={tab.to}
-                to={tab.to}
-                className={({ isActive }) =>
-                  `${pill} ${isActive ? "bg-[#1c1c22] font-semibold text-white" : "bg-[#f1f1f4] text-[#4a4a54] hover:bg-[#e7e7ec]"}`
-                }
-              >
-                <span
-                  aria-hidden="true"
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ background: `linear-gradient(150deg, ${TONE[tab.tone].from}, ${TONE[tab.tone].to})` }}
-                />
-                {tab.label}
-              </NavLink>
-            ))}
-          </nav>
+          {/* 시작 화면(다시 설정 포함)에서는 화면 이동 탭이 필요 없다 */}
+          {pathname !== "/start" && (
+            <nav
+              aria-label="화면 이동"
+              className="mt-8 flex flex-wrap gap-2 sm:mt-10"
+            >
+              {tabs.map((tab) => (
+                <NavLink
+                  key={tab.to}
+                  to={tab.to}
+                  className={({ isActive }) =>
+                    `${pill} ${isActive ? "bg-[#1c1c22] font-semibold text-white" : "bg-[#f1f1f4] text-[#4a4a54] hover:bg-[#e7e7ec]"}`
+                  }
+                >
+                  <span
+                    aria-hidden="true"
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{
+                      background: `linear-gradient(150deg, ${TONE[tab.tone].from}, ${TONE[tab.tone].to})`,
+                    }}
+                  />
+                  {tab.label}
+                </NavLink>
+              ))}
+            </nav>
+          )}
         </>
       ) : (
         <header className="flex flex-col items-center gap-3 pt-6 text-center sm:pt-8">
-          <span className={`${pill} bg-[#f1f1f4] py-1 text-[13px] text-[#8b8b94]`}>시작</span>
+          <span
+            className={`${pill} bg-[#f1f1f4] py-1 text-[13px] text-[#8b8b94]`}
+          >
+            시작
+          </span>
           <Logo large />
         </header>
       )}
@@ -103,7 +130,13 @@ export default function App({ api = defaultApi }: { api?: Api }) {
             path="/interview"
             element={
               <RequireSession>
-                <InterviewPage api={api} decided={notes.map((n) => n.annotation)} onDecide={(annotation, item_title) => record({ annotation, item_title })} />
+                <InterviewPage
+                  api={api}
+                  decided={notes.map((n) => n.annotation)}
+                  onDecide={(annotation, item_title) =>
+                    record({ annotation, item_title })
+                  }
+                />
               </RequireSession>
             }
           />

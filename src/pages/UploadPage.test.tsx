@@ -37,7 +37,15 @@ async function reachItemsStep(user: User) {
   await screen.findByText(/항목 5개 중/);
 }
 
-const analyze = (user: User) => user.click(screen.getByRole("button", { name: "선택한 항목으로 분석하기" }));
+async function goToChatStep(user: User) {
+  await user.click(screen.getByRole("button", { name: "카톡으로 넘어가기" }));
+  await screen.findByRole("heading", { name: "카톡에서 내용 뽑기" });
+}
+
+async function analyze(user: User) {
+  await goToChatStep(user);
+  await user.click(screen.getByRole("button", { name: "카톡에서 내용 뽑기" }));
+}
 
 describe("UploadPage (화면 1): 자료 올리기 → 항목 고르기 → 분석 결과", () => {
   it("처음에는 자료 올리기 단계이고, 파일을 넣기 전에는 항목 뽑기가 잠겨 있다", () => {
@@ -105,16 +113,13 @@ describe("UploadPage (화면 1): 자료 올리기 → 항목 고르기 → 분�
     expect(screen.getByText("카카오톡 대화.txt")).toBeInTheDocument();
   });
 
-  it("문서나 카톡 대화 중 하나가 없으면 무엇이 더 필요한지 알려주고 항목 뽑기가 잠겨 있다", async () => {
+  it("문서만 올려도 항목을 뽑을 수 있고, 카톡은 나중에 넣어도 된다고 알려준다", async () => {
     const user = userEvent.setup();
     render(<UploadPage api={instantApi} />);
 
     await addFiles(user, rules);
-    expect(screen.getByText(/카톡 대화 파일도 필요해요/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "항목 뽑기" })).toBeDisabled();
 
-    await addFiles(user, kakao);
-    expect(screen.queryByText(/카톡 대화 파일도 필요해요/)).not.toBeInTheDocument();
+    expect(screen.getByText(/카톡 대화는 다음 단계에서 넣어도 돼요/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "항목 뽑기" })).toBeEnabled();
   });
 
@@ -188,7 +193,7 @@ describe("UploadPage (화면 1): 자료 올리기 → 항목 고르기 → 분�
     expect(screen.getByRole("rowheader", { name: /회비 정산/ })).toBeInTheDocument();
   });
 
-  it("항목을 하나도 고르지 않으면 분석하기가 잠겨 있다", async () => {
+  it("항목을 하나도 고르지 않으면 카톡 단계로 넘어갈 수 없다", async () => {
     const user = userEvent.setup();
     render(<UploadPage api={instantApi} />);
     await reachItemsStep(user);
@@ -197,7 +202,7 @@ describe("UploadPage (화면 1): 자료 올리기 → 항목 고르기 → 분�
       await user.click(screen.getByRole("checkbox", { name: `${name} 선택` }));
     }
 
-    expect(screen.getByRole("button", { name: "선택한 항목으로 분석하기" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "카톡으로 넘어가기" })).toBeDisabled();
   });
 
   it("직접 추가한 항목도 선택된 채로 분석 결과에 빈 곳 6으로 나온다", async () => {
@@ -210,5 +215,68 @@ describe("UploadPage (화면 1): 자료 올리기 → 항목 고르기 → 분�
     await analyze(user);
 
     expect(await screen.findByRole("rowheader", { name: /장비 관리/ })).toHaveTextContent("빈 곳 6");
+  });
+
+  it("진행 단계에 '카톡에서 내용 뽑기'가 항목 고르기 다음 단계로 보인다", () => {
+    render(<UploadPage api={instantApi} />);
+
+    const steps = within(screen.getByRole("list", { name: "진행 단계" })).getAllByRole("listitem");
+    expect(steps.map((step) => step.textContent)).toEqual(["1 자료 올리기", "2 항목 고르기", "3 카톡에서 내용 뽑기", "4 분석 결과"]);
+  });
+
+  it("항목을 고른 뒤 카톡 단계로 가면, 고른 항목 수와 올려 둔 카톡 대화를 보여준다", async () => {
+    const user = userEvent.setup();
+    render(<UploadPage api={instantApi} />);
+    await reachItemsStep(user);
+    await user.click(screen.getByRole("checkbox", { name: "행사(MT) 선택" }));
+
+    await goToChatStep(user);
+
+    expect(currentStep()).toHaveTextContent("카톡에서 내용 뽑기");
+    expect(screen.getByText("고른 항목 4개 · 카톡 대화 1개")).toBeInTheDocument();
+    expect(within(screen.getByRole("list", { name: "올린 카톡 대화" })).getByText("카카오톡 대화.txt")).toBeInTheDocument();
+  });
+
+  it("카톡을 아직 안 올렸다면 카톡 단계에서 올릴 수 있고, 올리기 전에는 뽑기가 잠겨 있다", async () => {
+    const user = userEvent.setup();
+    render(<UploadPage api={instantApi} />);
+    await addFiles(user, rules);
+    await user.click(screen.getByRole("button", { name: "항목 뽑기" }));
+    await screen.findByText(/항목 5개 중/);
+    await goToChatStep(user);
+    expect(screen.getByRole("button", { name: "카톡에서 내용 뽑기" })).toBeDisabled();
+
+    await user.upload(screen.getByLabelText(/카톡 대화 파일 고르기/), new File(["x"], "단톡.txt", { type: "text/plain" }));
+
+    expect(await screen.findByText("단톡.txt")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "카톡에서 내용 뽑기" })).toBeEnabled();
+  });
+
+  it("카톡 단계에서 '항목 다시 고르기'로 돌아가도 체크한 항목이 그대로 남는다", async () => {
+    const user = userEvent.setup();
+    render(<UploadPage api={instantApi} />);
+    await reachItemsStep(user);
+    await user.click(screen.getByRole("checkbox", { name: "행사(MT) 선택" }));
+    await goToChatStep(user);
+
+    await user.click(screen.getByRole("button", { name: "항목 다시 고르기" }));
+
+    expect(currentStep()).toHaveTextContent("항목 고르기");
+    expect(screen.getByRole("checkbox", { name: "행사(MT) 선택" })).not.toBeChecked();
+    expect(screen.getByText("항목 5개 중 4개 선택")).toBeInTheDocument();
+  });
+
+  it("카톡에서 내용을 뽑는 동안 진행 안내가 보인다", async () => {
+    const user = userEvent.setup();
+    render(<UploadPage api={createMockApi({ delayMs: 60 })} />);
+    await addFiles(user, rules, kakao);
+    await user.click(screen.getByRole("button", { name: "항목 뽑기" }));
+    await screen.findByText(/항목 5개 중/);
+    await goToChatStep(user);
+
+    await user.click(screen.getByRole("button", { name: "카톡에서 내용 뽑기" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent("카톡에서 내용을 뽑는 중이에요");
+    await screen.findByRole("table");
   });
 });

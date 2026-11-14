@@ -94,6 +94,13 @@ describe("시작 화면과 화면 이동", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("이미 시작한 뒤 '다시 설정'으로 연 시작 화면에서도 화면 이동 탭은 보이지 않는다", () => {
+    renderApp("/start", existing);
+
+    expect(screen.getByRole("heading", { name: "시작하기" })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "화면 이동" })).not.toBeInTheDocument();
+  });
+
   it("아무것도 입력하지 않고 시작하면 필수 항목 오류가 보이고 화면이 넘어가지 않는다", async () => {
     const user = userEvent.setup();
     renderApp("/start", null);
