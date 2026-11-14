@@ -60,7 +60,14 @@ function FileRow({ entry, onRemove }: { entry: Entry; onRemove: () => void }) {
   );
 }
 
-export default function UploadPage({ api = defaultApi }: { api?: Api }) {
+export default function UploadPage({
+  api = defaultApi,
+  onNext,
+}: {
+  api?: Api;
+  /** 분석 결과를 확인한 뒤 질문 화면으로 넘어갈 때 부른다. */
+  onNext?: () => void;
+}) {
   const [step, setStep] = useState<Step>("docs");
   const [entries, setEntries] = useState<Entry[]>([]);
   const [items, setItems] = useState<Item[]>([]);
@@ -362,7 +369,22 @@ export default function UploadPage({ api = defaultApi }: { api?: Api }) {
         </section>
       )}
 
-      {step === "result" && <AnalysisView api={api} initialItems={items} />}
+      {step === "result" && (
+        <>
+          <AnalysisView api={api} initialItems={items} />
+          {onNext && (
+            <div className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-white/95 p-4 shadow-[0_10px_40px_-12px_rgba(20,20,40,0.35)] ring-1 ring-[#ececf0] backdrop-blur">
+              <p className="px-2 text-sm text-[#55555f]">
+                필요 없는 칸은 지금 닫아 주세요. 질문을 만든 뒤에는 바꿀 수
+                없어요.
+              </p>
+              <button type="button" className={primaryButton} onClick={onNext}>
+                질문으로 넘어가기
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

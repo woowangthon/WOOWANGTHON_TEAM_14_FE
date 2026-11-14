@@ -1,6 +1,6 @@
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createMockApi } from "../api/mockApi";
 import UploadPage from "./UploadPage";
 
@@ -278,5 +278,20 @@ describe("UploadPage (화면 1): 자료 올리기 → 항목 고르기 → 분�
 
     expect(screen.getByRole("status")).toHaveTextContent("카톡에서 내용을 뽑는 중이에요");
     await screen.findByRole("table");
+  });
+
+  it("분석 결과에서 '질문으로 넘어가기'를 누르면 다음 화면으로 넘어간다", async () => {
+    const user = userEvent.setup();
+    const onNext = vi.fn();
+    render(<UploadPage api={instantApi} onNext={onNext} />);
+    await reachItemsStep(user);
+    expect(screen.queryByRole("button", { name: "질문으로 넘어가기" })).not.toBeInTheDocument();
+
+    await analyze(user);
+    await screen.findByRole("table");
+    expect(screen.getByText(/필요 없는 칸은 지금 닫아 주세요/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "질문으로 넘어가기" }));
+
+    expect(onNext).toHaveBeenCalledTimes(1);
   });
 });

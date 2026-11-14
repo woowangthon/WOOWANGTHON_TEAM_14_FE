@@ -122,7 +122,7 @@ export default function App({ api = defaultApi }: { api?: Api }) {
             path="/upload"
             element={
               <RequireSession>
-                <UploadPage api={api} />
+                <UploadPage api={api} onNext={() => navigate("/interview")} />
               </RequireSession>
             }
           />
