@@ -17,8 +17,7 @@ export default function AnalysisView({
   api?: Api;
 }) {
   const [items, setItems] = useState(initialItems);
-  const [mode, setMode] = useState<Mode>("전임");
-
+  const mode: Mode = "전임"; // 이 화면은 전임이 쓴다. 칸을 닫는 건 전임만 한다.
   const [error, setError] = useState("");
 
   // 서버가 있으면 서버가 받은 뒤에 화면의 칸을 닫는다. 질문은 이 뒤에 만들어지므로 여기서 반영돼야 한다.
@@ -66,26 +65,7 @@ export default function AnalysisView({
       </section>
 
       <section className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className={title}>체크표</h2>
-          <div
-            className="inline-flex rounded-full bg-[#f1f1f4] p-1"
-            role="group"
-            aria-label="보는 사람"
-          >
-            {(["전임", "후임"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                aria-pressed={mode === m}
-                onClick={() => setMode(m)}
-                className={`rounded-full px-4 py-1.5 text-sm transition-colors ${mode === m ? "bg-[#1c1c22] text-white" : "text-[#55555f] hover:text-[#1c1c22]"}`}
-              >
-                {m}으로 보기
-              </button>
-            ))}
-          </div>
-        </div>
+        <h2 className={title}>체크표</h2>
         {error && (
           <p role="alert" className="text-sm">
             <b className="underline underline-offset-4">(오류)</b> {error}

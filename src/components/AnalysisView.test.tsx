@@ -30,14 +30,13 @@ describe("AnalysisView (분석 결과: 항목 카드 + 체크표)", () => {
     expect(screen.getByRole("button", { name: "회비 정산 · 연락 경로: 해당 없음 (전임이 닫음)" })).toBeInTheDocument();
   });
 
-  it("후임으로 바꾸면 닫기 버튼이 사라진다", async () => {
+  it("보는 사람을 바꾸는 전임/후임 전환 버튼은 없고, 항상 전임으로 닫을 수 있다", async () => {
     const user = userEvent.setup();
     render(<AnalysisView initialItems={mock.items} />);
 
-    await user.click(screen.getByRole("button", { name: "후임으로 보기" }));
+    expect(screen.queryByRole("button", { name: /으로 보기/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "회비 정산 · 연락 경로: 문서에 없음" }));
-
-    expect(screen.queryByRole("button", { name: "해당 없음으로 닫기" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "해당 없음으로 닫기" })).toBeInTheDocument();
   });
 
   it("칸을 닫으면 서버에도 알린다", async () => {
