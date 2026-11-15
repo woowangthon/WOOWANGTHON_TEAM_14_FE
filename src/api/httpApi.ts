@@ -46,7 +46,7 @@ const store = {
   },
 };
 
-/** 서버는 파일을 한 개만 받는다. 여러 개면 글을 이어 붙여 한 파일로 만든다. */
+/** 카톡 대화는 서버가 파일을 한 개만 받는다. 여러 개면 글을 이어 붙여 한 파일로 만든다. */
 async function combine(files: File[], name: string): Promise<File> {
   if (files.length === 1) return files[0];
   const texts = await Promise.all(files.map(readText));
@@ -169,16 +169,9 @@ export function createHttpApi({
     async uploadDocs(files) {
       if (files.length === 0)
         throw new Error("확정 자료를 한 개 이상 올려 주세요");
-      if (files.length > 1 && files.some((f) => /\.pdf$/i.test(f.name))) {
-        throw new Error(
-          "PDF는 한 번에 한 개만 올릴 수 있어요. 여러 개를 올릴 때는 TXT로 올려 주세요",
-        );
-      }
-      const file = await combine(files, "자료.txt");
-
       const id = await sid();
       const form = new FormData();
-      form.append("file", file);
+      for (const file of files) form.append("file", file);
       const body = await call<{ items?: Item[] } & WithError>(
         "POST",
         `/sessions/${id}/docs`,

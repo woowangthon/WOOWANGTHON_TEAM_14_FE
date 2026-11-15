@@ -80,7 +80,7 @@ describe("createHttpApi: 세션", () => {
 });
 
 describe("createHttpApi: 자료와 카톡", () => {
-  it("TXT 여러 개는 한 파일로 합쳐서 올린다", async () => {
+  it("자료 여러 개는 file 필드를 반복해서 한 번에 올린다", async () => {
     const { calls, fetchImpl } = fake((c) => (c.path === "/sessions" ? { session_id: "s1" } : { items: [item("item_01", "회비")] }));
     const api = createHttpApi({ base: "http://be", fetchImpl });
     await api.startSession!(values);
@@ -88,19 +88,22 @@ describe("createHttpApi: 자료와 카톡", () => {
     const items = await api.uploadDocs([txt("a.txt", "회비는 매월 낸다"), txt("b.txt", "코트는 신청한다")]);
 
     const upload = calls.find((c) => c.path === "/sessions/s1/docs")!;
-    const sent = upload.form!.get("file") as File;
-    const text = await readBlob(sent);
-    expect(text).toContain("회비는 매월 낸다");
-    expect(text).toContain("코트는 신청한다");
+    const sent = upload.form!.getAll("file") as File[];
+    expect(sent.map((f) => f.name)).toEqual(["a.txt", "b.txt"]);
+    expect(await readBlob(sent[0])).toContain("회비는 매월 낸다");
+    expect(await readBlob(sent[1])).toContain("코트는 신청한다");
     expect(items.map((i) => i.title)).toEqual(["회비"]);
   });
 
-  it("PDF는 다른 파일과 함께 올릴 수 없다고 알려준다", async () => {
-    const { fetchImpl } = fake(() => ({ session_id: "s1" }));
+  it("PDF 여러 개나 PDF와 TXT를 섞어도 그대로 올린다", async () => {
+    const { calls, fetchImpl } = fake((c) => (c.path === "/sessions" ? { session_id: "s1" } : { items: [item("item_01", "회비")] }));
     const api = createHttpApi({ base: "http://be", fetchImpl });
     await api.startSession!(values);
 
-    await expect(api.uploadDocs([new File(["x"], "a.pdf"), txt("b.txt", "내용")])).rejects.toThrow(/PDF/);
+    await api.uploadDocs([new File(["x"], "a.pdf"), new File(["y"], "b.pdf"), txt("c.txt", "내용")]);
+
+    const sent = calls.find((c) => c.path === "/sessions/s1/docs")!.form!.getAll("file") as File[];
+    expect(sent.map((f) => f.name)).toEqual(["a.pdf", "b.pdf", "c.txt"]);
   });
 
   it("항목이 하나도 안 왔고 error가 있으면 그 메시지를 오류로 보여준다", async () => {
